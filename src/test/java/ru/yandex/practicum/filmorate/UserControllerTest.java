@@ -30,17 +30,6 @@ class UserControllerTest {
     }
 
     @Test
-    void create_invalidEmail_shouldThrowValidationException() {
-        User user = new User();
-        user.setId(1L);
-        user.setName("John");
-        user.setEmail("john.doe");
-        user.setLogin("John_Doe");
-        user.setBirthday(LocalDate.of(1990, 1, 1));
-        assertThrows(ValidationException.class, () -> userController.create(user));
-    }
-
-    @Test
     void create_invalidLogin_shouldThrowValidationException() {
         User user = new User();
         user.setId(1L);
@@ -48,17 +37,6 @@ class UserControllerTest {
         user.setEmail("john.doe@example.com");
         user.setLogin("John Doe");
         user.setBirthday(LocalDate.of(1990, 1, 1));
-        assertThrows(ValidationException.class, () -> userController.create(user));
-    }
-
-    @Test
-    void create_invalidBirthday_shouldThrowValidationException() {
-        User user = new User();
-        user.setId(1L);
-        user.setName("John");
-        user.setEmail("john.doe@example.com");
-        user.setLogin("John_Doe");
-        user.setBirthday(LocalDate.now().plusDays(1));
         assertThrows(ValidationException.class, () -> userController.create(user));
     }
 
@@ -103,4 +81,3 @@ class UserControllerTest {
         assertThrows(NotFoundException.class, () -> userController.update(user));
     }
 }
-

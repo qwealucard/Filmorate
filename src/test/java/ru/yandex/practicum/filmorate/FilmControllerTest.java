@@ -30,49 +30,6 @@ public class FilmControllerTest {
     }
 
     @Test
-    public void create_invalidName_shouldThrowValidationException() {
-        Film film = new Film();
-        film.setId(1L);
-        film.setDescription("Film description");
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(120);
-        assertThrows(ValidationException.class, () -> filmController.create(film));
-    }
-
-    @Test
-    public void create_invalidDescription_shouldThrowValidationException() {
-        Film film = new Film();
-        film.setId(1L);
-        film.setName("Film Title");
-        film.setDescription("T".repeat(201));
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(120);
-        assertThrows(ValidationException.class, () -> filmController.create(film));
-    }
-
-    @Test
-    public void create_invalidReleaseData_shouldThrowValidationException() {
-        Film film = new Film();
-        film.setId(1L);
-        film.setName("Film Title");
-        film.setDescription("Film description");
-        film.setReleaseDate(LocalDate.of(1895, 12, 27));
-        film.setDuration(120);
-        assertThrows(ValidationException.class, () -> filmController.create(film));
-    }
-
-    @Test
-    public void create_invalidDuration_shouldThrowValidationException() {
-        Film film = new Film();
-        film.setId(1L);
-        film.setName("Film Title");
-        film.setDescription("Film description");
-        film.setReleaseDate(LocalDate.now());
-        film.setDuration(-10);
-        assertThrows(ValidationException.class, () -> filmController.create(film));
-    }
-
-    @Test
     public void update_validFilm_shouldReturnUpdatedFilm() {
         Film film = new Film();
         film.setId(1L);

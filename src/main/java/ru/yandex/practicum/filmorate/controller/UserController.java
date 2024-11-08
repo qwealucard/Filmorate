@@ -1,22 +1,25 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/users")
 @Getter
 public class UserController {
-    private static org.slf4j.Logger log = LoggerFactory.getLogger(UserController.class);
-    private final HashMap<Long, User> users = new HashMap<>();
+    private static org.slf4j.Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final Map<Long, User> users = new HashMap<>();
 
     @GetMapping
     public Collection<User> findAll() {
@@ -24,16 +27,10 @@ public class UserController {
     }
 
     @PostMapping
-    public User create(@RequestBody User user) {
+    public User create(@Valid @RequestBody User user) {
         log.info("Создание нового пользователя");
-        if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            throw new ValidationException("Электронная почта не может быть пустой и должна содержать символ @");
-        }
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
             throw new ValidationException("Логин не может быть пустым и содержать пробелы");
-        }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ValidationException("Дата рождения не может быть в будущем");
         }
         user.setId(getNextId());
         if (user.getName() == null) {
@@ -71,13 +68,13 @@ public class UserController {
         throw new NotFoundException("Пользователь с id = " + user.getId() + " не найден");
     }
 
-    public long getNextId() {
+    private long getNextId() {
         long currentMaxId = users.keySet()
                                  .stream()
                                  .mapToLong(id -> id)
+                                 .peek(id -> log.info("ID сгенерирован: {}", id))
                                  .max()
-                                 .orElse(0L);
-        log.info("ID сгенерирован");
-        return currentMaxId + 1;
+                                 .orElse(0L) + 1;
+        return currentMaxId;
     }
 }

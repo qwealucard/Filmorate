@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.Data;
+import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
@@ -10,13 +12,15 @@ import ru.yandex.practicum.filmorate.model.Film;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 
+@Slf4j
 @RestController
-@Data
+@Getter
 @RequestMapping("/films")
 public class FilmController {
-    private static org.slf4j.Logger log = LoggerFactory.getLogger(FilmController.class);
-    private final HashMap<Long, Film> films = new HashMap<>();
+    private static org.slf4j.Logger logger = LoggerFactory.getLogger(FilmController.class);
+    private final Map<Long, Film> films = new HashMap<>();
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -24,19 +28,10 @@ public class FilmController {
     }
 
     @PostMapping
-    public Film create(@RequestBody Film film) {
+    public Film create(@Valid @RequestBody Film film) {
         log.info("Создание нового фильма");
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название фильма должно быть указано");
-        }
-        if (film.getDescription().length() > 200) {
-            throw new ValidationException("Описание фильма должно не превышать 200 символов");
-        }
         if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
-        }
-        if (film.getDuration() != null && film.getDuration() <= 0) {
-            throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
         film.setId(getNextId());
         films.put(film.getId(), film);
@@ -72,12 +67,13 @@ public class FilmController {
         throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
     }
 
-    public long getNextId() {
+    private long getNextId() {
         long currentMaxId = films.keySet()
                                  .stream()
                                  .mapToLong(id -> id)
+                                 .peek(id -> log.info("ID сгенерирован: {}", id))
                                  .max()
-                                 .orElse(0L);
-        return currentMaxId + 1;
+                                 .orElse(0L) + 1;
+        return currentMaxId;
     }
 }
