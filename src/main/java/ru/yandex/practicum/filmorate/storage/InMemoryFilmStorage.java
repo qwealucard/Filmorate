@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Getter
 @Slf4j
@@ -29,6 +30,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         log.info("Создание нового фильма");
         film.setLikeCount(0L);
         if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+            log.error("Ошибка при вводе даты");
             throw new ReleaseDateException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
         film.setId(getNextId());
@@ -39,6 +41,7 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     public Film update(Film film) {
         if (film.getId() == null) {
+            log.error("Ошибка при нахождении фильма для обновления");
             throw new ValidationException("Id должен быть указан");
         }
         log.info("Обновление фильма с id: {}", film.getId());
@@ -64,12 +67,9 @@ public class InMemoryFilmStorage implements FilmStorage {
         throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
     }
 
-    public Film getFilmById(long id) {
-        return films.entrySet().stream()
-                    .filter(entry -> entry.getKey() == id)
-                    .map(Map.Entry::getValue)
-                    .findFirst()
-                    .orElse(null);
+    public Optional<Film> getFilmById(long id) {
+        Film film = films.get(id);
+        return Optional.ofNullable(film);
     }
 
     private long getNextId() {
@@ -81,4 +81,10 @@ public class InMemoryFilmStorage implements FilmStorage {
                                  .orElse(0L) + 1;
         return currentMaxId;
     }
+
+    public boolean exists(Long filmId) {
+        return films.containsKey(filmId);
+    }
+
+
 }

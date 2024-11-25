@@ -4,6 +4,7 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 public interface UserStorage {
 
@@ -13,7 +14,9 @@ public interface UserStorage {
 
     Collection<User> findAll();
 
-    User getUserById(long id);
+    Optional<User> getUserById(long id);
 
     Map<Long, User> getUsers();
+
+    boolean exists(Long userId);
 }

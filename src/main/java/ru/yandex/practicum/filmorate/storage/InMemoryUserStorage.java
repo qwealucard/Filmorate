@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Getter
 @Slf4j
@@ -25,6 +26,7 @@ public class InMemoryUserStorage implements UserStorage {
     public User create(User user) {
         log.info("Создание нового пользователя");
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
+            log.error("Ошибка при заполнении логина");
             throw new ValidationException("Логин не может быть пустым и содержать пробелы");
         }
         user.setId(getNextId());
@@ -38,6 +40,7 @@ public class InMemoryUserStorage implements UserStorage {
 
     public User update(User user) {
         if (user.getId() == null) {
+            log.error("Ошибка нахождения пользователя при обновлении");
             throw new ValidationException("Id должен быть указан");
         }
         log.info("Обновление пользователя");
@@ -59,18 +62,13 @@ public class InMemoryUserStorage implements UserStorage {
             log.info("Пользователь обновлен");
             return existingUser;
         }
+        log.error("Ошибка нахождения пользователя при обновлении");
         throw new NotFoundException("Пользователь с id = " + user.getId() + " не найден");
     }
 
-    public User getUserById(long id) {
-        if (!users.containsKey(id)) {
-            throw new NotFoundException("Пользователя с таким id нет");
-        }
-        return users.entrySet().stream()
-                    .filter(entry -> entry.getKey() == id)
-                    .map(Map.Entry::getValue)
-                    .findFirst()
-                    .orElse(null);
+    public Optional<User> getUserById(long id) {
+        User user = users.get(id);
+        return Optional.ofNullable(user);
     }
 
     private Long getNextId() {
@@ -81,5 +79,9 @@ public class InMemoryUserStorage implements UserStorage {
                                  .max()
                                  .orElse(0L) + 1;
         return currentMaxId;
+    }
+
+    public boolean exists(Long userId) {
+        return users.containsKey(userId);
     }
 }

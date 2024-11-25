@@ -28,18 +28,20 @@ public class FilmService {
     private Map<Long, Set<Long>> userLikes = new HashMap<>();
 
     public void addLike(Long userId, Long filmId) {
-        if (!filmStorage.getFilms().containsKey(filmId)) {
+        if (!filmStorage.exists(filmId)) {
+            log.error("Ошибка при нахождении фильма для добавлении лайка");
             throw new NotFoundException("Такого фильма не существует");
         }
-        if (!userStorage.getUsers().containsKey(userId)) {
+        if (!userStorage.exists(userId)) {
+            log.error("Ошибка при нахождении пользователя для добавления лайка");
             throw new NotFoundException("Такого пользователя нет");
         }
         Set<Long> likes = userLikes.computeIfAbsent(filmId, k -> new HashSet<>());
         if (!likes.contains(userId)) {
             likes.add(userId);
-            Long likeCount = filmStorage.getFilmById(filmId).getLikeCount();
+            Long likeCount = filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).getLikeCount();
             likeCount = likeCount + 1;
-            filmStorage.getFilmById(filmId).setLikeCount(likeCount);
+            filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).setLikeCount(likeCount);
             log.info("Лайк поставлен");
         } else {
             log.error("Ошибка в установлении лайка");
@@ -51,9 +53,9 @@ public class FilmService {
         Set<Long> likes = userLikes.get(filmId);
         if (likes != null && likes.contains(userId)) {
             likes.remove(userId);
-            Long likeCount = filmStorage.getFilmById(filmId).getLikeCount();
+            Long likeCount = filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).getLikeCount();
             likeCount--;
-            filmStorage.getFilmById(filmId).setLikeCount(likeCount);
+            filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).setLikeCount(likeCount);
             log.info("Лайк удален");
         } else {
             log.error("Ошибка с удалением лайка");
@@ -66,5 +68,17 @@ public class FilmService {
                           .sorted(Comparator.comparing(Film::getLikeCount).reversed())
                           .limit(count)
                           .collect(Collectors.toList());
+    }
+
+    public Collection<Film> findAll() {
+        return filmStorage.findAll();
+    }
+
+    public Film create(Film film) {
+        return filmStorage.create(film);
+    }
+
+    public Film update(Film film) {
+        return filmStorage.update(film);
     }
 }

@@ -20,7 +20,7 @@ public class FilmControllerTest {
     private final FilmStorage filmStorage = new InMemoryFilmStorage();
     private final UserStorage userStorage = new InMemoryUserStorage();
     private final FilmService filmService = new FilmService(filmStorage, userStorage);
-    private final FilmController filmController = new FilmController(filmService, filmStorage);
+    private final FilmController filmController = new FilmController(filmService);
 
     @Test
     public void create_validFilm_shouldReturnCreatedFilm() {

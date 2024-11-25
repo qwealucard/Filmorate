@@ -17,7 +17,7 @@ class UserControllerTest {
 
     private final InMemoryUserStorage userStorage = new InMemoryUserStorage();
     private final UserService userService = new UserService(userStorage);
-    private final UserController userController = new UserController(userStorage, userService);
+    private final UserController userController = new UserController(userService);
 
     @Test
     void create_validUser_shouldReturnCreatedUser() {
