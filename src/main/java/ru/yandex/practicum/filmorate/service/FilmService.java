@@ -28,6 +28,7 @@ public class FilmService {
     private Map<Long, Set<Long>> userLikes = new HashMap<>();
 
     public void addLike(Long userId, Long filmId) {
+        Film film = filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден"));
         if (!filmStorage.exists(filmId)) {
             log.error("Ошибка при нахождении фильма для добавлении лайка");
             throw new NotFoundException("Такого фильма не существует");
@@ -39,9 +40,7 @@ public class FilmService {
         Set<Long> likes = userLikes.computeIfAbsent(filmId, k -> new HashSet<>());
         if (!likes.contains(userId)) {
             likes.add(userId);
-            Long likeCount = filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).getLikeCount();
-            likeCount = likeCount + 1;
-            filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).setLikeCount(likeCount);
+            film.addLike(film);
             log.info("Лайк поставлен");
         } else {
             log.error("Ошибка в установлении лайка");
@@ -50,12 +49,11 @@ public class FilmService {
     }
 
     public void removeLike(Long userId, Long filmId) {
+        Film film = filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден"));
         Set<Long> likes = userLikes.get(filmId);
         if (likes != null && likes.contains(userId)) {
             likes.remove(userId);
-            Long likeCount = filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).getLikeCount();
-            likeCount--;
-            filmStorage.getFilmById(filmId).orElseThrow(() -> new NotFoundException("Фильм не найден")).setLikeCount(likeCount);
+            film.removeLike(film);
             log.info("Лайк удален");
         } else {
             log.error("Ошибка с удалением лайка");

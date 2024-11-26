@@ -25,4 +25,12 @@ public class User {
     @Past
     private LocalDate birthday;
     final Set<Long> friendList = new HashSet<>();
+
+    public void addFriend(User user) {
+        friendList.add(user.getId());
+    }
+
+    public void removeFriend(User user) {
+        friendList.remove(user.getId());
+    }
 }

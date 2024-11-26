@@ -22,4 +22,12 @@ public class Film {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Long duration;
     private Long likeCount;
+
+    public void addLike(Film film) {
+        likeCount++;
+    }
+
+    public void removeLike(Film film) {
+        likeCount--;
+    }
 }

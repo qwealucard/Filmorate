@@ -23,9 +23,8 @@ public class UserService {
 
     public void addFriend(Long userId, Long friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        ;
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        ;
+
         if (!userStorage.exists(userId)) {
             log.error("Ошибка нахождения пользователя для добавления друга");
             throw new NotFoundException("Пользователь с ID " + userId + " не найден.");
@@ -42,27 +41,19 @@ public class UserService {
             log.error("Ошибка при добавлении себя в друзья");
             throw new DuplicateException("Вы не можете добавить себя в друзья");
         }
-        addInFriends(user, friend);
+        user.addFriend(friend);
+        friend.addFriend(user);
         log.info("Добавлен друг в список друзей пользователя");
         log.info("Добавлен пользователь в список друзей друга");
-    }
-
-    public void addInFriends(User user, User friend) {
-        user.getFriendList().add(friend.getId());
-        friend.getFriendList().add(user.getId());
     }
 
     public void deleteFriend(Long userId, Long friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        deleteFriend(user, friend);
+        user.removeFriend(friend);
+        friend.removeFriend(user);
         log.info("Друг удален из списка друзей пользователя");
         log.info("Пользователь удален из списка друзей друга");
-    }
-
-    public void deleteFriend(User user, User friend) {
-        user.getFriendList().remove(friend.getId());
-        friend.getFriendList().remove(user.getId());
     }
 
     public Set<User> getFriends(Set<Long> friendList) {

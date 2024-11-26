@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FilmControllerTest {
 
-    private final FilmStorage filmStorage = new InMemoryFilmStorage();
+    private final InMemoryFilmStorage filmStorage = new InMemoryFilmStorage();
     private final UserStorage userStorage = new InMemoryUserStorage();
     private final FilmService filmService = new FilmService(filmStorage, userStorage);
     private final FilmController filmController = new FilmController(filmService);
