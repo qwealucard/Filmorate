@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 @Service
 public class FilmService {
 
-    public final FilmStorage filmStorage;
-    public final UserStorage userStorage;
+    private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {

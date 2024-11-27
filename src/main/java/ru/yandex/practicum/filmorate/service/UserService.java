@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.DuplicateException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
@@ -14,7 +13,7 @@ import java.util.*;
 @Slf4j
 @Service
 public class UserService {
-    public final UserStorage userStorage;
+    private final UserStorage userStorage;
 
     @Autowired
     public UserService(UserStorage userStorage) {
@@ -69,12 +68,7 @@ public class UserService {
         Set<User> friendList = new HashSet<>();
         for (Long friendId : userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден")).getFriendList()) {
             User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-            if (friend != null) {
-                friendList.add(friend);
-            } else {
-                log.error("Ошибка в получении списка друзей");
-                throw new ValidationException("У вас нет добавленных друзей");
-            }
+            friendList.add(friend);
         }
         log.info("Выводим список друзей");
         return friendList;
