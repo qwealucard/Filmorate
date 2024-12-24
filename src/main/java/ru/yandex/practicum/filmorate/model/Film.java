@@ -1,10 +1,12 @@
 package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDate;
 
+@AllArgsConstructor
 @Data
 public class Film {
     private Long id;
@@ -15,9 +17,17 @@ public class Film {
     @Size(max = 200, message = "Описание фильма не должно превышать 200 символов")
     private String description;
     @NotNull
-    @PastOrPresent(message = "Дата релиза не может быть раньше 28 декабря 1895 года")
     private LocalDate releaseDate;
     @NotNull
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
-    private Integer duration;
+    private Long duration;
+    private Long likeCount;
+
+    public void addLike(Film film) {
+        likeCount++;
+    }
+
+    public void removeLike(Film film) {
+        likeCount--;
+    }
 }
