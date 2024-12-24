@@ -1,15 +1,14 @@
 package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDate;
 
-@AllArgsConstructor
+//@AllArgsConstructor
 @Data
 public class Film {
-    private Long id;
+    private Integer id;
     @NotNull
     @NotBlank(message = "Название фильма должно быть указано")
     private String name;
@@ -20,14 +19,6 @@ public class Film {
     private LocalDate releaseDate;
     @NotNull
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
-    private Long duration;
-    private Long likeCount;
-
-    public void addLike(Film film) {
-        likeCount++;
-    }
-
-    public void removeLike(Film film) {
-        likeCount--;
-    }
+    private Integer duration;
+    private MPARating mpaRating;
 }

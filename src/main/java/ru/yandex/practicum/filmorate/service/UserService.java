@@ -1,26 +1,37 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.DuplicateException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.*;
 
 import java.util.*;
 
 @Slf4j
 @Service
 public class UserService {
+    private final FilmStorage filmStorage;
     private final UserStorage userStorage;
+    private final GenreStorage genreStorage;
+    private final MPAStorage mpaStorage;
+    private final FriendshipStorage friendshipStorage;
+    private final LikeStorage likeStorage;
 
-    @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
+                       @Qualifier("userDbStorage") UserStorage userStorage, MPAStorage mpaStorage, GenreStorage genreStorage,
+                       FriendshipStorage friendshipStorage, LikeStorage likeStorage) {
+        this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.friendshipStorage = friendshipStorage;
+        this.mpaStorage = mpaStorage;
+        this.genreStorage = genreStorage;
+        this.likeStorage = likeStorage;
     }
 
-    public void addFriend(Long userId, Long friendId) {
+    public void addFriend(Integer userId, Integer friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
@@ -41,40 +52,41 @@ public class UserService {
             throw new DuplicateException("Вы не можете добавить себя в друзья");
         }
         user.addFriend(friend);
-        friend.addFriend(user);
+        friendshipStorage.addFriend(userId, friendId);
         log.info("Добавлен друг в список друзей пользователя");
         log.info("Добавлен пользователь в список друзей друга");
     }
 
-    public void deleteFriend(Long userId, Long friendId) {
+    public void deleteFriend(Integer userId, Integer friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         user.removeFriend(friend);
-        friend.removeFriend(user);
+        friendshipStorage.removeFriend(userId, friendId);
         log.info("Друг удален из списка друзей пользователя");
         log.info("Пользователь удален из списка друзей друга");
     }
 
-    public Set<User> getFriends(Set<Long> friendList) {
+    public Set<User> getFriends(Set<Integer> friendList) {
         Set<User> friends = new HashSet<>();
-        for (Long friendId : friendList) {
+        for (Integer friendId : friendList) {
             User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
             friends.add(friend);
         }
         return friends;
     }
 
-    public Set<User> checkFriends(Long userId) {
+    public Set<User> checkFriends(Integer userId) {
         Set<User> friendList = new HashSet<>();
-        for (Long friendId : userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден")).getFriendList()) {
+        for (Integer friendId : userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден")).getFriendList()) {
             User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
             friendList.add(friend);
         }
+        friendshipStorage.getAllFriends(userId);
         log.info("Выводим список друзей");
         return friendList;
     }
 
-    public Set<User> getCommonFriends(Long userId1, Long userId2) {
+    public Set<User> getCommonFriends(Integer userId1, Integer userId2) {
         if (Objects.equals(userId1, userId2)) return new HashSet<>();
 
         Set<User> friends1 = getFriends(userStorage.getUserById(userId1).orElseThrow(() -> new NotFoundException("Пользователь не найден")).getFriendList());

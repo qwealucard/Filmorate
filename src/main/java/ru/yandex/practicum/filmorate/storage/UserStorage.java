@@ -13,7 +13,7 @@ public interface UserStorage {
 
     Collection<User> findAll();
 
-    Optional<User> getUserById(long id);
+    Optional<User> getUserById(Integer id);
 
-    boolean exists(Long userId);
+    boolean exists(Integer userId);
 }
