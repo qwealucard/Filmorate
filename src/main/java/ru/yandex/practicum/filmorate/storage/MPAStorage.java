@@ -10,8 +10,6 @@ public interface MPAStorage {
 
     MPARating addRating(MPARating rating);
 
-    MPARating updateRating(MPARating rating);
-
     MPARating findRatingById(Integer id);
 
     Integer deleteRating(Integer id);

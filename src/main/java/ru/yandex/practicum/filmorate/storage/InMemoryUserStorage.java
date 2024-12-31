@@ -19,7 +19,6 @@ public class InMemoryUserStorage implements UserStorage {
 
     private final Map<Integer, User> users = new HashMap<>();
 
-
     @Override
     public Collection<User> findAll() {
         return users.values();
@@ -85,10 +84,5 @@ public class InMemoryUserStorage implements UserStorage {
                                     .orElse(0) + 1;
 
         return currentMaxId;
-    }
-
-    @Override
-    public boolean exists(Integer userId) {
-        return users.containsKey(userId);
     }
 }

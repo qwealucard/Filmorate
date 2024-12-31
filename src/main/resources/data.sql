@@ -6,7 +6,7 @@ INSERT into genres(genre_name) VALUES
 ('Документальный'),
 ('Боевик');
 
-INSERT into MPA_Rating(MPA_Rating_name) VALUES
+INSERT into MPA_Ratings(MPA_Rating_name) VALUES
 ('G'),
 ('PG'),
 ('PG-13'),

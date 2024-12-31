@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.dao;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -11,8 +13,10 @@ import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
 
 import java.util.List;
 
+@Slf4j
 @Repository
 @AllArgsConstructor
+@Qualifier("FriendshipDbStorage")
 public class FriendshipDbStorage implements FriendshipStorage {
 
     private final JdbcTemplate jdbc;
@@ -20,54 +24,34 @@ public class FriendshipDbStorage implements FriendshipStorage {
 
     @Override
     public void addFriend(Integer userId, Integer friendId) {
-        String USER_QUERY = "SELECT COUNT(*) FROM users WHERE id = ? ";
-        String CHECK_QUERY = "SELECT COUNT(*) FR0M friendship WHERE (user_id = ? AND friend_id = ?)" +
-                "OR (user_id = ? AND friend_id = ?)";
-        String INSERT_QUERY = "INSERT INTO friendship SET status = TRUE WHERE user_id = ? AND friend_id = ?";
-        String UPDATE_QUERY = "UPDATE friendship SET status = TRUE WHERE user_id = ? AND friend_id = ?";
-        String UPDATE_NEGATIVE_QUERY = "UPDATE friendship SET status = FALSE WHERE user_id = ? AND friend_id = ?";
-
+        String checkUserExists = "SELECT COUNT(*) FROM users WHERE id IN (?, ?)";
+        String insertQuery = "INSERT INTO friendship(user_id, friend_id) VALUES(?,?)";
         try {
-            Integer userCount = jdbc.queryForObject(USER_QUERY, Integer.class, userId);
-            if (userCount == null || userCount == 0) {
-                throw new NotFoundException("Пользователь с id " + userId + " не найден");
+            Integer userCount = jdbc.queryForObject(checkUserExists, Integer.class, userId, friendId);
+            if (userCount != 2) {
+                throw new NotFoundException("Пользователь с id " + userId + " или id " + friendId + " не найден");
             }
-            Integer friendCount = jdbc.queryForObject(USER_QUERY, Integer.class, friendId);
-            if (friendCount == null || friendCount == 0) {
-                throw new NotFoundException("Пользователь с id " + friendId + " не найден");
-            }
-
-            int count = jdbc.queryForObject(CHECK_QUERY, Integer.class, userId, friendId, friendId, userId);
-
-            if (count > 0) {
-                return;
-            }
-
-            jdbc.update(INSERT_QUERY, userId, friendId, false);
-            count = jdbc.queryForObject(CHECK_QUERY, Integer.class, friendId, userId, userId, friendId);
-            if (count > 0) {
-                jdbc.update(UPDATE_QUERY, userId, friendId);
-                jdbc.update(UPDATE_NEGATIVE_QUERY, userId, friendId);
-            }
-        } catch (NotFoundException e) {
-            throw new NotFoundException("Ошибка при добавлении друга");
+            jdbc.update(insertQuery, userId, friendId);
+            log.info("Друг добавлен");
+        } catch (DataAccessException e) {
+            throw new NotFoundException("Ошибка при добавлении друга: " + e.getMessage());
         }
     }
 
     @Override
     public void removeFriend(Integer userId, Integer friendId) {
-        String DELETE_FRIEND = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
-        String CHECK_USER = "SELECT COUNT(*) FROM users WHERE id = ?";
+        String deleteFriend = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
+        String checkUser = "SELECT COUNT(*) FROM users WHERE id = ?";
         try {
-            Integer userCount = jdbc.queryForObject(CHECK_USER, Integer.class, userId);
+            Integer userCount = jdbc.queryForObject(checkUser, Integer.class, userId);
             if (userCount == null || userCount == 0) {
                 throw new NotFoundException("Пользователь с id " + userId + " не найден");
             }
-            Integer friendCount = jdbc.queryForObject(CHECK_USER, Integer.class, friendId);
+            Integer friendCount = jdbc.queryForObject(checkUser, Integer.class, friendId);
             if (friendCount == null || friendCount == 0) {
                 throw new NotFoundException("Пользователь с id " + friendId + " не найден");
             }
-            jdbc.update(DELETE_FRIEND, userId, friendId);
+            jdbc.update(deleteFriend, userId, friendId);
         } catch (NotFoundException e) {
             throw new NotFoundException("Ошибка при удалении друга");
         }
@@ -75,20 +59,29 @@ public class FriendshipDbStorage implements FriendshipStorage {
 
     @Override
     public List<User> getAllFriends(Integer id) {
-        String GET_FRIENDS = "SELECT u.id, u.email, u.login, u.name, u.birthday " +
+        log.info("Получение всех друзей");
+        String getFriends = "SELECT u.* " +
                 "FROM users u " +
                 "JOIN friendship f ON u.id = f.friend_id " +
                 "WHERE f.user_id = ?";
-        String CHECK_USER = "SELECT COUNT(*) FROM users WHERE id = ?";
+        String checkUser = "SELECT COUNT(*) FROM users WHERE id = ?";
         try {
-            Integer userCount = jdbc.queryForObject(CHECK_USER, Integer.class, id);
+            Integer userCount = jdbc.queryForObject(checkUser, Integer.class, id);
             if (userCount == null || userCount == 0) {
                 throw new NotFoundException("Пользователь с id " + id + " не найден");
             }
-            return jdbc.query(GET_FRIENDS, userMapper, id);
+            return jdbc.query(getFriends, userMapper, id);
         } catch (DataAccessException e) {
-            System.out.println("Ошибка при получении списка друзей пользователя с id " + id + ": " + e.getMessage());
-            return List.of();
+            throw new NotFoundException("Ошибка при получении списка друзей пользователя с id " + id + ": " + e.getMessage());
         }
+    }
+
+    @Override
+    public List<User> getCommonFriends(Integer userId, Integer friendId) {
+        String sql = "SELECT * FROM users " +
+                "JOIN friendship friend1 ON users.id = friend1.friend_id " +
+                "JOIN friendship friend2 ON users.id = friend2.friend_id " +
+                "WHERE friend1.user_id = ? AND friend2.user_id = ?";
+        return jdbc.query(sql, userMapper, userId, friendId);
     }
 }

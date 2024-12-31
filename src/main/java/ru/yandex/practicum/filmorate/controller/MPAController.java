@@ -25,17 +25,6 @@ public class MPAController {
         return new ResponseEntity<>(addedRating, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<MPARating> updateMPARating(@Valid @RequestBody MPARating mpaRating, @PathVariable Integer id) {
-        try {
-            MPARating updatedRating = filmService.updateMPARating(new MPARating(), mpaRating);
-            return new ResponseEntity<>(updatedRating, HttpStatus.OK);
-        } catch (NotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<MPARating> getMPARatingById(@PathVariable Integer id) {
         try {

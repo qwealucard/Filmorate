@@ -4,25 +4,27 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import ru.yandex.practicum.filmorate.dao.mappers.GenreMapper;
-import ru.yandex.practicum.filmorate.dao.mappers.MPARatingMapper;
+
+import ru.yandex.practicum.filmorate.exceptions.GenreException;
+import ru.yandex.practicum.filmorate.exceptions.MPAException;
+import ru.yandex.practicum.filmorate.exceptions.ReleaseDateException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.MPAStorage;
 
 import java.sql.PreparedStatement;
 import java.sql.Date;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.*;
 
 @Slf4j
 @Repository
@@ -30,95 +32,84 @@ import java.util.Optional;
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
     private JdbcTemplate jdbc;
-    private final MPARatingMapper mpaRatingMapper;
-    private final GenreMapper genreMapper;
 
     @Override
     public Film create(Film film) {
-
-        String sql = "INSERT INTO films (name, description, RELEASE_DATE, duration) VALUES (?, ?, ?, ?)";
-        //MpaIsNotNull(film.getMpaRating());
+        String sql = "INSERT INTO films (name, description, RELEASE_DATE, duration, mpa) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
+            LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
+            if (film.getReleaseDate().isBefore(minReleaseDate)) {
+                throw new ReleaseDateException("Ошибка при создании фильма, связанная с датой");
+            }
             ps.setDate(3, Date.valueOf(film.getReleaseDate()));
             ps.setInt(4, film.getDuration());
-            //ps.setInt(5, film.getMpaRating().getId());
+            if (film.getMpa() == null) {
+                ps.setObject(5, null);
+            } else {
+                validateMpaRating(film.getMpa());
+                ps.setInt(5, film.getMpa().getId());
+            }
             return ps;
         }, keyHolder);
-        if(keyHolder.getKey() != null) {
+        if (keyHolder.getKey() != null) {
             film.setId(keyHolder.getKey().intValue());
         }
-      /*  else {
-            throw new ValidationException("Ошибка добавления в базу");
-        }*/
-        //film.setId(Objects.requireNonNull(keyHolder.getKey().intValue()));
+        if (film.getMpa() != null) {
+            film.setMpa(getMpaRatingById(film.getMpa().getId()));
+        }
+        addGenreToFilm(film);
         return film;
     }
 
     @Override
-    public Optional<Film> update(Film film) {
-        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, MPA_Rating, WHERE id = ?";
-        int rowsAffected;
+    public Film update(Film film) {
+        if (!filmExists(film.getId())) {
+            throw new ValidationException("Фильм с id " + film.getId() + " не найден");
+        }
+        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa = ? WHERE id = ?";
         try {
-            rowsAffected = jdbc.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(sql);
-                ps.setString(1, film.getName());
-                ps.setString(2, film.getDescription());
-                ps.setDate(3, Date.valueOf(film.getReleaseDate()));
-                ps.setInt(4, film.getDuration());
-                ps.setInt(5, film.getMpaRating().getId());
-                ps.setInt(6, film.getId());
-                return ps;
-            });
+            if (film.getMpa() != null) {
+                validateMpaRating(film.getMpa());
+            }
+            jdbc.update(sql,
+                    film.getName(),
+                    film.getDescription(),
+                    film.getReleaseDate(),
+                    film.getDuration(),
+                    film.getMpa() != null ? film.getMpa().getId() : null,
+                    film.getId());
+            if (film.getMpa() != null) {
+                film.setMpa(getMpaRatingById(film.getMpa().getId()));
+            }
+
+            return film;
         } catch (DataAccessException e) {
             System.out.println("Ошибка при обновлении фильма " + film.getId() + ": " + e.getMessage());
-            return Optional.empty();
-        }
-        if (rowsAffected > 0) {
-            return Optional.of(film);
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public Optional<Film> getFilmById(Integer id) {
-        String sql = "SELECT id, name, description, release_date, duration, mpa_rating FROM films WHERE id = ?";
-        try {
-            Film film = jdbc.queryForObject(sql, (rs, rowNum) -> {
-                Film film1 = new Film();
-                film1.setId(rs.getInt("id"));
-                film1.setName(rs.getString("name"));
-                film1.setDescription(rs.getString("description"));
-                film1.setReleaseDate(rs.getDate("release_date").toLocalDate());
-                film1.setDuration(rs.getInt("duration"));
-                MPARating mpaRating = mpaRatingMapper.mapRow(rs, rowNum);
-                film1.setMpaRating(mpaRating);
-                return film1;
-            }, id);
-            return Optional.of(film);
-        } catch (DataAccessException e) {
-            System.out.println("Ошибка при поиске фильма по id " + id + ": " + e.getMessage());
-            return Optional.empty();
+            throw new ValidationException("Ошибка при обновлении фильма");
         }
     }
 
     public Collection<Film> findAll() {
-        String sql = "SELECT id, name, description, release_date, duration, mpa_rating FROM films";
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name " +
+                "FROM films f LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id";
         try {
             return jdbc.query(sql, (rs, rowNum) -> {
-                Film film = new Film();
-                film.setId(rs.getInt("id"));
-                film.setName(rs.getString("name"));
-                film.setDescription(rs.getString("description"));
-                film.setReleaseDate(rs.getDate("release_date").toLocalDate());
-                film.setDuration(rs.getInt("duration"));
-                MPARating mpaRating = mpaRatingMapper.mapRow(rs, rowNum);
-                film.setMpaRating(mpaRating);
-                return film;
+                return new Film(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getDate("release_date").toLocalDate(),
+                        rs.getInt("duration"),
+                        new ArrayList<>(),
+                        new MPARating(
+                                rs.getInt("MPARating_id"),
+                                rs.getString("MPA_Rating_name")
+                        )
+                );
             });
         } catch (DataAccessException e) {
             System.out.println("Ошибка при получении всех фильмов: " + e.getMessage());
@@ -126,29 +117,141 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private void MpaIsNotNull(MPARating mpaRating) {
-        if (mpaRating != null) {
-            String sql = "SELECT COUNT(*) FROM MPA_Rating WHERE MPARating_id = ?";
-            Integer count = jdbc.queryForObject(sql, Integer.class, mpaRating.getId());
-            if (count == null || count == 0) {
-                throw new ValidationException("Mpa равен 0");
-            }
-        }
-        else {
-            throw new ValidationException("mpa равен null");
+    private void validateMpaRating(MPARating mpaRating) {
+        String sql = "SELECT COUNT(*) FROM MPA_Ratings WHERE MPARating_id = ?";
+        Integer count = jdbc.queryForObject(sql, Integer.class, mpaRating.getId());
+        if (count == null || count == 0) {
+            throw new MPAException("Ошибка с заполнением рейтинга");
         }
     }
-    private void GenreIsNotNull(Genre genre) {
-        if(genre != null) {
-            String sql = "SELECT COUNT(*) FROM genre WHERE genre_id = ?";
-            Integer count = jdbc.queryForObject(sql, Integer.class, genre.getId());
-            if(count == null || count == 0) {
-                throw new ValidationException("Жанр равен null");
+
+    private void genreIsNotNull(Genre genre) {
+        String sql = "SELECT COUNT(*) FROM genres WHERE genre_id = ?";
+        Integer count = jdbc.queryForObject(sql, Integer.class, genre.getId());
+        if (count == null || count == 0) {
+            throw new GenreException("Ошибка с заполнением жанра");
+        }
+    }
+
+    private MPARating getMpaRatingById(Integer id) {
+        String sql = "SELECT MPARating_id, MPA_Rating_name FROM MPA_Ratings WHERE MPARating_id = ?";
+        return jdbc.queryForObject(sql, (rs, rowNum) -> new MPARating(
+                rs.getInt("MPARating_id"),
+                rs.getString("MPA_Rating_name")
+        ), id);
+    }
+
+    private void addGenreToFilm(Film film) {
+        String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
+        if (film.getGenres() == null || film.getGenres().isEmpty()) {
+            return;
+        }
+        List<Genre> genres = film.getGenres();
+        List<Genre> genresToAdd = new ArrayList<>();
+        for (Genre genre : genres) {
+            genreIsNotNull(genre);
+            if (!isGenreAlreadyAdded(film.getId(), genre.getId())) {
+                genresToAdd.add(genre);
             }
         }
-        else {
-            throw new ValidationException("Жанр равен null");
+        jdbc.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Genre genre = genres.get(i);
+                ps.setInt(1, film.getId());
+                ps.setInt(2, genre.getId());
+                log.info("жанр добавлен");
+            }
+
+            @Override
+            public int getBatchSize() {
+                return genres.size();
+            }
+        });
+    }
+
+    private boolean filmExists(Integer id) {
+        String sql = "SELECT COUNT(*) FROM films WHERE id = ?";
+        Integer count = jdbc.queryForObject(sql, Integer.class, id);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public Optional<Film> getFilmById(Integer id) {
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name " +
+                "FROM films AS f " +
+                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id WHERE f.id = ?";
+        try {
+            Film film = jdbc.queryForObject(sql, (rs, rowNum) -> {
+                return new Film(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getDate("release_date").toLocalDate(),
+                        rs.getInt("duration"),
+                        new ArrayList<>(),
+                        new MPARating(
+                                rs.getInt("MPARating_id"),
+                                rs.getString("MPA_Rating_name")
+                        )
+                );
+            }, id);
+            List<Genre> genres = getFilmGenresById(film.getId());
+            if (genres != null) {
+                film.setGenres(genres);
+                log.info("жанр добавлен");
+            } else {
+                film.setGenres(new ArrayList<>());
+            }
+            return Optional.of(film);
+        } catch (EmptyResultDataAccessException e) {
+            System.out.println("Ошибка при поиске фильма по id " + id + ": " + e.getMessage());
+            return Optional.empty();
         }
+    }
+
+    private List<Genre> getFilmGenresById(Integer filmId) {
+        String sql = "SELECT g.genre_id, g.genre_name FROM film_genres AS fg LEFT JOIN genres AS g ON fg.genre_id = g.genre_id WHERE film_id = ?";
+        List<Genre> genresList = jdbc.query(sql, (rs, rowNum) -> new Genre(
+                rs.getInt("genre_id"),
+                rs.getString("genre_name")
+        ), filmId);
+        Set<Genre> uniqueGenres = new HashSet<>(genresList);
+        return new ArrayList<>(uniqueGenres);
+    }
+
+    private boolean isGenreAlreadyAdded(Integer filmId, Integer genreId) {
+        String sql = "SELECT COUNT(*) FROM film_genres WHERE film_id = ? AND genre_id = ?";
+        Integer count = jdbc.queryForObject(sql, Integer.class, filmId, genreId);
+        return count != null && count > 0;
+    }
+
+    @Override
+    public List<Film> getPopularFilms(Integer count) {
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name, COUNT(l.user_id) as likesCount " +
+                "FROM films f LEFT JOIN film_likes l ON f.id = l.film_id " +
+                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
+                "GROUP BY f.id ORDER BY likesCount DESC, f.id DESC LIMIT ?";
+        return jdbc.query(sql, (rs, rowNum) -> {
+            Film film = new Film(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    rs.getDate("release_date").toLocalDate(),
+                    rs.getInt("duration"),
+                    new ArrayList<>(),
+                    rs.getObject("mpa") != null ? new MPARating(
+                            rs.getInt("MPARating_id"),
+                            rs.getString("MPA_Rating_name")
+                    ) : null
+            );
+            List<Genre> genres = getFilmGenresById(film.getId());
+            if (genres != null) {
+                film.setGenres(genres);
+            }
+            System.out.println();
+            return film;
+        }, count);
     }
 }
 

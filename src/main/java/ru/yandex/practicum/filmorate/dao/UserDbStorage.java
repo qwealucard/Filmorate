@@ -14,6 +14,7 @@ import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,12 +73,14 @@ public class UserDbStorage implements UserStorage {
         String sql = "SELECT id, name, email, login, birthday FROM users WHERE id = ?";
         try {
             User user = jdbc.queryForObject(sql, (rs, rowNum) -> {
-                User user1 = new User();
-                user1.setId(rs.getInt("id"));
-                user1.setName(rs.getString("name"));
-                user1.setEmail(rs.getString("email"));
-                user1.setLogin(rs.getString("login"));
-                user1.setBirthday(rs.getDate("birthday").toLocalDate());
+                User user1 = new User(
+                        rs.getInt("id"),
+                        rs.getString("email"),
+                        rs.getString("login"),
+                        rs.getString("name"),
+                        rs.getDate("birthday").toLocalDate(),
+                        new HashSet<>()
+                );
                 return user1;
             }, id);
             return Optional.of(user);
@@ -92,12 +95,14 @@ public class UserDbStorage implements UserStorage {
         String sql = "SELECT id, name, email, login, birthday FROM users";
         try {
             return jdbc.query(sql, (rs, rowNum) -> {
-                User user = new User();
-                user.setId(rs.getInt("id"));
-                user.setName(rs.getString("name"));
-                user.setEmail(rs.getString("email"));
-                user.setLogin(rs.getString("login"));
-                user.setBirthday(rs.getDate("birthday").toLocalDate());
+                User user = new User(
+                        rs.getInt("id"),
+                        rs.getString("email"),
+                        rs.getString("login"),
+                        rs.getString("name"),
+                        rs.getDate("birthday").toLocalDate(),
+                        new HashSet<>()
+                );
                 return user;
             });
         } catch (DataAccessException e) {
@@ -105,10 +110,4 @@ public class UserDbStorage implements UserStorage {
             return List.of();
         }
     }
-
-    @Override
-    public boolean exists(Integer userId) {
-        return true;
-    }
-
 }

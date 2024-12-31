@@ -1,11 +1,15 @@
 package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
+import java.util.List;
 
-//@AllArgsConstructor
+@Slf4j
+@AllArgsConstructor
 @Data
 public class Film {
     private Integer id;
@@ -20,5 +24,6 @@ public class Film {
     @NotNull
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Integer duration;
-    private MPARating mpaRating;
+    private List<Genre> genres;
+    private MPARating mpa;
 }

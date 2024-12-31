@@ -10,7 +10,6 @@ import ru.yandex.practicum.filmorate.model.MPARating;
 import ru.yandex.practicum.filmorate.storage.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,13 +33,6 @@ public class FilmService {
         this.likeStorage = likeStorage;
     }
 
-   /* public List<Film> getTopFilms(int count) {
-        return filmStorage.findAll().stream()
-                          .sorted(Comparator.comparing(Film::getLikeCount).reversed())
-                          .limit(count)
-                          .collect(Collectors.toList());
-    }*/
-
     public void addLike(Integer userId, Integer filmId) {
         likeStorage.addLike(userId, filmId);
     }
@@ -61,12 +53,8 @@ public class FilmService {
         return update;
     }
 
-    public Optional<Genre> findGenre(Integer id) {
-        Optional<Genre> genre = genreStorage.findGenre(id);
-        if (genre == null) {
-            throw new NotFoundException("Жанр с id " + id + " не найден");
-        }
-        return genre;
+    public Genre getGenreById(Integer id) {
+        return genreStorage.getGenreById(id);
     }
 
     public List<Genre> getAllGenres() {
@@ -79,14 +67,6 @@ public class FilmService {
 
     public MPARating addMPARating(MPARating mpaRating) {
         return mpaStorage.addRating(mpaRating);
-    }
-
-    public MPARating updateMPARating(MPARating mpaRating, MPARating updatedRating) {
-        MPARating rating = mpaStorage.updateRating(mpaRating);
-        if (rating == null) {
-            throw new NotFoundException("Рейтинг MPA с id " + mpaRating.getId() + " не найден");
-        }
-        return rating;
     }
 
     public MPARating getMPARatingById(Integer id) {
@@ -108,8 +88,12 @@ public class FilmService {
         }
     }
 
+    public Optional<Film> getFilmById(Integer id) {
+        return filmStorage.getFilmById(id);
+    }
+
     public List<Film> getTopFilms(int count) {
-        return new ArrayList<>();
+        return filmStorage.getPopularFilms(count);
     }
 
     public Collection<Film> findAll() {
@@ -120,8 +104,7 @@ public class FilmService {
         return filmStorage.create(film);
     }
 
-    public Optional<Film> update(Film film) {
+    public Film update(Film film) {
         return filmStorage.update(film);
     }
-
 }

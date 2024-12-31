@@ -37,6 +37,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(MPAException.class)
+    public ResponseEntity<ErrorResponse> handleMPAExceptionn(Exception e) {
+        log.error("Ошибка с заполнением MPA");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(GenreException.class)
+    public ResponseEntity<ErrorResponse> handleGenreException(Exception e) {
+        log.error("Ошибка с заполнением Genre");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     @Getter
     static class ErrorResponse {
         private final String error;

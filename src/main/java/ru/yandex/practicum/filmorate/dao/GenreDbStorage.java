@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.GenreStorage;
 
@@ -54,14 +55,10 @@ public class GenreDbStorage implements GenreStorage {
 
     @Override
     public Optional<Genre> findGenre(Integer id) {
-        String sql = "SELECT id, name FROM genres WHERE id = ?";
+        String sql = "SELECT genre_id, genre_name FROM genres WHERE genre_id = ?";
         try {
-            Genre genre = jdbc.queryForObject(sql, (rs, rowNum) -> {
-                Genre genre1 = new Genre();
-                genre1.setId(rs.getInt("id"));
-                genre1.setName(rs.getString("name"));
-                return genre1;
-            }, id);
+            Genre genre = jdbc.queryForObject(sql, (rs, rowNum) ->
+                    new Genre(rs.getInt("genre_id"), rs.getString("genre_name")), id);
             return Optional.of(genre);
         } catch (DataAccessException e) {
             System.err.println("Ошибка при поиске жанра по id " + id + ": " + e.getMessage());
@@ -71,18 +68,11 @@ public class GenreDbStorage implements GenreStorage {
 
     @Override
     public List<Genre> findAll() {
-        String sql = "SELECT id, name FROM genres";
-        try {
-            return jdbc.query(sql, (rs, rowNum) -> {
-                Genre genre = new Genre();
-                genre.setId(rs.getInt("id"));
-                genre.setName(rs.getString("name"));
-                return genre;
-            });
-        } catch (DataAccessException e) {
-            System.out.println("Ошибка при получении всех жанров: " + e.getMessage());
-            return List.of();
-        }
+        String sql = "SELECT genre_id, genre_name FROM genres";
+        return jdbc.query(sql, (rs, rowNum) -> new Genre(
+                rs.getInt("genre_id"),
+                rs.getString("genre_name")
+        ));
     }
 
     @Override
@@ -96,5 +86,10 @@ public class GenreDbStorage implements GenreStorage {
             return false;
         }
         return rowsAffected > 0;
+    }
+
+    @Override
+    public Genre getGenreById(Integer id) {
+        return findGenre(id).orElseThrow(() -> new NotFoundException("Жанр с id " + id + " не найден"));
     }
 }

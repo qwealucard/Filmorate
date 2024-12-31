@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -35,9 +36,12 @@ public class GenreController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Genre> getGenreById(@PathVariable Integer id) {
-        Optional<Genre> genre = filmService.findGenre(id);
-        return genre.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                    .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        try {
+            Genre genre = filmService.getGenreById(id);
+            return new ResponseEntity<>(genre, HttpStatus.OK);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @DeleteMapping("/{id}")
@@ -52,3 +56,4 @@ public class GenreController {
         return new ResponseEntity<>(genres, HttpStatus.OK);
     }
 }
+

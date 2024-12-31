@@ -16,4 +16,6 @@ public interface GenreStorage {
     Optional<Genre> findGenre(Integer id);
 
     boolean deleteGenre(Integer id);
+
+    Genre getGenreById(Integer id);
 }

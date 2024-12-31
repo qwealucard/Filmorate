@@ -10,17 +10,13 @@ import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Getter
 @Slf4j
 @Component
 @Qualifier("InMemoryFilmStorage")
 public class InMemoryFilmStorage implements FilmStorage {
-
 
     private Map<Integer, Film> films = new HashMap<>();
 
@@ -41,7 +37,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         return film;
     }
 
-    public Optional<Film> update(Film film) {
+    public Film update(Film film) {
         if (film.getId() == null) {
             log.error("Ошибка при нахождении фильма для обновления");
             throw new ValidationException("Id должен быть указан");
@@ -63,7 +59,7 @@ public class InMemoryFilmStorage implements FilmStorage {
             }
             films.put(film.getId(), existingFilm);
             log.info("Фильм с id {} обновлен: {}", film.getId(), film);
-            return Optional.of(existingFilm);
+            return existingFilm;
         }
         log.error("Ошибка валидации при обновлении фильма");
         throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
@@ -74,6 +70,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         return Optional.ofNullable(film);
     }
 
+
     private Integer getNextId() {
         Integer currentMaxId = films.keySet()
                                     .stream()
@@ -82,5 +79,10 @@ public class InMemoryFilmStorage implements FilmStorage {
                                     .max()
                                     .orElse(0) + 1;
         return currentMaxId;
+    }
+
+    @Override
+    public List<Film> getPopularFilms(Integer count) {
+        return new ArrayList<>();
     }
 }

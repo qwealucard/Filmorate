@@ -14,6 +14,4 @@ public interface UserStorage {
     Collection<User> findAll();
 
     Optional<User> getUserById(Integer id);
-
-    boolean exists(Integer userId);
 }
