@@ -3,11 +3,11 @@ package ru.yandex.practicum.filmorate.dao;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
 
@@ -33,8 +33,8 @@ public class FriendshipDbStorage implements FriendshipStorage {
             }
             jdbc.update(insertQuery, userId, friendId);
             log.info("Друг добавлен");
-        } catch (DataAccessException e) {
-            throw new NotFoundException("Ошибка при добавлении друга: " + e.getMessage());
+        } catch (ValidationException e) {
+            throw new ValidationException("Ошибка при добавлении друга: " + e.getMessage());
         }
     }
 
@@ -52,7 +52,7 @@ public class FriendshipDbStorage implements FriendshipStorage {
                 throw new NotFoundException("Пользователь с id " + friendId + " не найден");
             }
             jdbc.update(deleteFriend, userId, friendId);
-        } catch (NotFoundException e) {
+        } catch (ValidationException e) {
             throw new NotFoundException("Ошибка при удалении друга");
         }
     }
@@ -71,7 +71,7 @@ public class FriendshipDbStorage implements FriendshipStorage {
                 throw new NotFoundException("Пользователь с id " + id + " не найден");
             }
             return jdbc.query(getFriends, userMapper, id);
-        } catch (DataAccessException e) {
+        } catch (ValidationException e) {
             throw new NotFoundException("Ошибка при получении списка друзей пользователя с id " + id + ": " + e.getMessage());
         }
     }

@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.dao;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +22,7 @@ import java.util.Optional;
 @Qualifier("userDbStorage")
 @Repository
 @AllArgsConstructor
+@Slf4j
 public class UserDbStorage implements UserStorage {
     protected final JdbcTemplate jdbc;
 
@@ -85,7 +87,7 @@ public class UserDbStorage implements UserStorage {
             }, id);
             return Optional.of(user);
         } catch (DataAccessException e) {
-            System.out.println("Ошибка при поиске пользователя с id:" + id + ": " + e.getMessage());
+            log.error("Ошибка при поиске пользователя с id:" + id + ": " + e.getMessage());
             return Optional.empty();
         }
     }
@@ -106,7 +108,7 @@ public class UserDbStorage implements UserStorage {
                 return user;
             });
         } catch (DataAccessException e) {
-            System.out.println("Ошибка при получении всех пользователей" + e.getMessage());
+            log.error("Ошибка при получении всех пользователей" + e.getMessage());
             return List.of();
         }
     }

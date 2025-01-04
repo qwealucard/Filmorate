@@ -9,7 +9,7 @@ public interface GenreStorage {
 
     List<Genre> findAll();
 
-    Optional<Genre> update(Genre genre);
+    Genre update(Genre genre);
 
     Genre addGenre(Genre genre);
 

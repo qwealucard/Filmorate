@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -49,19 +48,13 @@ public class FilmController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Film> getFilmById(@PathVariable Integer id) {
-        return filmService.getFilmById(id)
-                          .map(film -> new ResponseEntity<>(film, HttpStatus.OK))
-                          .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public Film getFilmById(@PathVariable Integer id) {
+        return filmService.getFilmById(id);
     }
 
     @GetMapping("/popular")
-    public ResponseEntity<List<Film>> getPopularFilms(@RequestParam int count) {
-        try {
-            List<Film> films = filmService.getTopFilms(count);
-            return new ResponseEntity<>(films, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
+    @ResponseStatus(HttpStatus.OK)
+    public List<Film> getPopularFilms(@RequestParam int count) {
+            return filmService.getTopFilms(count);
     }
 }

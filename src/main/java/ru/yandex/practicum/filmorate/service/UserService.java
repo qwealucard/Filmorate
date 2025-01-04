@@ -14,19 +14,15 @@ import java.util.*;
 public class UserService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final GenreStorage genreStorage;
-    private final MPAStorage mpaStorage;
     private final FriendshipStorage friendshipStorage;
     private final LikeStorage likeStorage;
 
     public UserService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
-                       @Qualifier("userDbStorage") UserStorage userStorage, MPAStorage mpaStorage, GenreStorage genreStorage,
+                       @Qualifier("userDbStorage") UserStorage userStorage,
                        @Qualifier("FriendshipDbStorage") FriendshipStorage friendshipStorage, LikeStorage likeStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.friendshipStorage = friendshipStorage;
-        this.mpaStorage = mpaStorage;
-        this.genreStorage = genreStorage;
         this.likeStorage = likeStorage;
     }
 

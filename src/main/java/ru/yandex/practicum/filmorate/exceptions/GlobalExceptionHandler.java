@@ -49,6 +49,24 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(FilmNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFilmNotFoundException(Exception e) {
+        log.error("Ошибка с нахождением фильма");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(GenreNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleGenreNotFoundException(Exception e) {
+        log.error("Ошибка с нахождением жанра");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(RatingNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRatingNotFoundException(Exception e) {
+        log.error("Ошибка с нахождением рейтинга");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
     @Getter
     static class ErrorResponse {
         private final String error;

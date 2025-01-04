@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.dao;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -13,7 +15,9 @@ import java.sql.PreparedStatement;
 import java.util.List;
 
 @Repository
+@Slf4j
 @AllArgsConstructor
+@Qualifier("MPADbStorage")
 public class MPADbStorage implements MPAStorage {
     private JdbcTemplate jdbc;
 
@@ -43,7 +47,7 @@ public class MPADbStorage implements MPAStorage {
             }, id);
             return mpaRating;
         } catch (DataAccessException e) {
-            System.out.println("Ошибка при поиске рейтинга по id " + id + ": " + e.getMessage());
+            log.error("Ошибка при поиске рейтинга по id " + id + ": " + e.getMessage());
             return null;
         }
     }
@@ -60,7 +64,7 @@ public class MPADbStorage implements MPAStorage {
                 return mpaRating;
             });
         } catch (DataAccessException e) {
-            System.out.println("Ошибка при получении всех рейтингов: " + e.getMessage());
+            log.error("Ошибка при получении всех рейтингов: " + e.getMessage());
             return List.of();
         }
     }
