@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.exceptions.UpdateUsersException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
 
@@ -33,8 +33,8 @@ public class FriendshipDbStorage implements FriendshipStorage {
             }
             jdbc.update(insertQuery, userId, friendId);
             log.info("Друг добавлен");
-        } catch (ValidationException e) {
-            throw new ValidationException("Ошибка при добавлении друга: " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw new NotFoundException("Ошибка при нахождении друга: " + e.getMessage());
         }
     }
 
@@ -52,8 +52,8 @@ public class FriendshipDbStorage implements FriendshipStorage {
                 throw new NotFoundException("Пользователь с id " + friendId + " не найден");
             }
             jdbc.update(deleteFriend, userId, friendId);
-        } catch (ValidationException e) {
-            throw new NotFoundException("Ошибка при удалении друга");
+        } catch (RuntimeException e) {
+            throw new UpdateUsersException("Ошибка при удалении друга " + e.getMessage());
         }
     }
 
@@ -71,8 +71,8 @@ public class FriendshipDbStorage implements FriendshipStorage {
                 throw new NotFoundException("Пользователь с id " + id + " не найден");
             }
             return jdbc.query(getFriends, userMapper, id);
-        } catch (ValidationException e) {
-            throw new NotFoundException("Ошибка при получении списка друзей пользователя с id " + id + ": " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw new UpdateUsersException("Ошибка при получении списка друзей пользователя с id " + id + ": " + e.getMessage());
         }
     }
 

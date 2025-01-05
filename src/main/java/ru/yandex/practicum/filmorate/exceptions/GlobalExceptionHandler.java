@@ -67,6 +67,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UpdateUsersException.class)
+    public ResponseEntity<ErrorResponse> handleUpdateUsersException(Exception e) {
+        log.error("Ошибка при взаимодействии с базой данных ");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UpdateFilmsException.class)
+    public ResponseEntity<ErrorResponse> handleUpdateFilmsException(Exception e) {
+        log.error("Ошибка при взаимодействии с базой данных ");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     @Getter
     static class ErrorResponse {
         private final String error;

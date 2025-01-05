@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.dao.mappers;
 
-import lombok.Data;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.MPARating;
@@ -8,7 +7,6 @@ import ru.yandex.practicum.filmorate.model.MPARating;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-@Data
 @Component
 public class MPARatingMapper implements RowMapper<MPARating> {
     @Override

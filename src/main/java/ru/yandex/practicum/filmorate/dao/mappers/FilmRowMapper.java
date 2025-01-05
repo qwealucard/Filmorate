@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.dao.mappers;
 
-import lombok.AllArgsConstructor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -11,7 +10,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 @Component
-@AllArgsConstructor
 public class FilmRowMapper implements RowMapper<Film> {
 
     @Override

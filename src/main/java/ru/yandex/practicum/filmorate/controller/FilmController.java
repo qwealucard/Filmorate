@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmLikeService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
@@ -19,6 +20,7 @@ import java.util.List;
 @AllArgsConstructor
 public class FilmController {
     private final FilmService filmService;
+    private final FilmLikeService filmLikeService;
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -38,13 +40,13 @@ public class FilmController {
     @PutMapping("/{id}/like/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
-        filmService.addLike(id, userId);
+        filmLikeService.addLike(id, userId);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
-        filmService.removeLike(id, userId);
+        filmLikeService.removeLike(id, userId);
     }
 
     @GetMapping("/{id}")
@@ -55,6 +57,6 @@ public class FilmController {
     @GetMapping("/popular")
     @ResponseStatus(HttpStatus.OK)
     public List<Film> getPopularFilms(@RequestParam int count) {
-            return filmService.getTopFilms(count);
+            return filmLikeService.getTopFilms(count);
     }
 }

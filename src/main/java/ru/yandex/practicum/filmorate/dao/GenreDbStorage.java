@@ -9,7 +9,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.GenreStorage;
 
@@ -54,7 +53,7 @@ public class GenreDbStorage implements GenreStorage {
             return genre;
         } else {
             log.error("Ошибка при обновлении жанра");
-            throw new ValidationException("Ошибка при обновлении жанра");
+            throw new NotFoundException("Ошибка при обновлении жанра");
         }
     }
 
