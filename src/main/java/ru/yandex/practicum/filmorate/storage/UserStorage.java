@@ -13,7 +13,5 @@ public interface UserStorage {
 
     Collection<User> findAll();
 
-    Optional<User> getUserById(long id);
-
-    boolean exists(Long userId);
+    Optional<User> getUserById(Integer id);
 }

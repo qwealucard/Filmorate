@@ -17,12 +17,14 @@ import java.util.Optional;
 @Component
 public class InMemoryUserStorage implements UserStorage {
 
-    private final Map<Long, User> users = new HashMap<>();
+    private final Map<Integer, User> users = new HashMap<>();
 
+    @Override
     public Collection<User> findAll() {
         return users.values();
     }
 
+    @Override
     public User create(User user) {
         log.info("Создание нового пользователя");
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
@@ -38,6 +40,7 @@ public class InMemoryUserStorage implements UserStorage {
         return user;
     }
 
+    @Override
     public User update(User user) {
         if (user.getId() == null) {
             log.error("Ошибка нахождения пользователя при обновлении");
@@ -66,22 +69,20 @@ public class InMemoryUserStorage implements UserStorage {
         throw new NotFoundException("Пользователь с id = " + user.getId() + " не найден");
     }
 
-    public Optional<User> getUserById(long id) {
+    @Override
+    public Optional<User> getUserById(Integer id) {
         User user = users.get(id);
         return Optional.ofNullable(user);
     }
 
-    private Long getNextId() {
-        Long currentMaxId = users.keySet()
-                                 .stream()
-                                 .mapToLong(id -> id)
-                                 .peek(id -> log.info("ID сгенерирован: {}", id))
-                                 .max()
-                                 .orElse(0L) + 1;
-        return currentMaxId;
-    }
 
-    public boolean exists(Long userId) {
-        return users.containsKey(userId);
+    private Integer getNextId() {
+        Integer currentMaxId = users.keySet()
+                                    .stream()
+                                    .peek(id -> log.info("ID сгенерирован: {}", id)) // оставляем peek
+                                    .max(Integer::compare)
+                                    .orElse(0) + 1;
+
+        return currentMaxId;
     }
 }

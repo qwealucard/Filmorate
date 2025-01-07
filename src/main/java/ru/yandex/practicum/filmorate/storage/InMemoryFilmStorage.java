@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ReleaseDateException;
@@ -9,18 +10,15 @@ import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Getter
 @Slf4j
 @Component
+@Qualifier("InMemoryFilmStorage")
 public class InMemoryFilmStorage implements FilmStorage {
 
-
-    private Map<Long, Film> films = new HashMap<>();
+    private Map<Integer, Film> films = new HashMap<>();
 
     public Collection<Film> findAll() {
         return films.values();
@@ -28,7 +26,7 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     public Film create(Film film) {
         log.info("Создание нового фильма");
-        film.setLikeCount(0L);
+
         if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
             log.error("Ошибка при вводе даты");
             throw new ReleaseDateException("Дата релиза не может быть раньше 28 декабря 1895 года");
@@ -67,24 +65,24 @@ public class InMemoryFilmStorage implements FilmStorage {
         throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
     }
 
-    public Optional<Film> getFilmById(long id) {
+    public Optional<Film> getFilmById(Integer id) {
         Film film = films.get(id);
         return Optional.ofNullable(film);
     }
 
-    private long getNextId() {
-        long currentMaxId = films.keySet()
-                                 .stream()
-                                 .mapToLong(id -> id)
-                                 .peek(id -> log.info("ID сгенерирован: {}", id))
-                                 .max()
-                                 .orElse(0L) + 1;
+
+    private Integer getNextId() {
+        Integer currentMaxId = films.keySet()
+                                    .stream()
+                                    .mapToInt(id -> id)
+                                    .peek(id -> log.info("ID сгенерирован: {}", id))
+                                    .max()
+                                    .orElse(0) + 1;
         return currentMaxId;
     }
 
-    public boolean exists(Long filmId) {
-        return films.containsKey(filmId);
+    @Override
+    public List<Film> getPopularFilms(Integer count) {
+        return new ArrayList<>();
     }
-
-
 }
