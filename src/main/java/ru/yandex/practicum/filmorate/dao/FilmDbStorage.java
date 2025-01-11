@@ -319,7 +319,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private List<Film> getFilmSortYear(Integer directorId) {
-        String sql = "SELECT f.* FROM films f JOIN film_directors fd ON f.id = fd.film_id where fd.directors_id = ? order by RELEASE_DATE ";
+        String sql = "SELECT f.* FROM films f JOIN film_directors fd ON f.id = fd.film_id WHERE fd.directors_id = ? ORDER BY release_date";
         return jdbc.query(sql, (rs, rowNum) -> new Film(
                 rs.getInt("id"),
                 rs.getString("name"),
@@ -333,8 +333,9 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private List<Film> getFilmSortLike(Integer directorId) {
-        String sql = "with res as (select count(user_id) likes, FILM_ID from film_likes group by FILM_ID)\n" +
-                "SELECT f.* FROM films f JOIN film_directors fd ON f.id = fd.film_id left join res as r on r.FILM_ID = f.ID where fd.directors_id = ? order by likes desc";
+        String sql = "WITH res AS (SELECT COUNT(user_id) likes, film_id FROM film_likes GROUP BY film_id)\n" +
+                "SELECT f.* FROM films f JOIN film_directors fd ON f.id = fd.film_id LEFT JOIN res AS r ON r.FILM_ID = f.ID " +
+                "WHERE fd.directors_id = ? ORDER BY likes DESC";
 
         List<Film> films = jdbc.query(sql, (rs, rowNum) -> new Film(
                 rs.getInt("id"),
