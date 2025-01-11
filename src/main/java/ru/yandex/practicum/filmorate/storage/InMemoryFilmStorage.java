@@ -10,7 +10,12 @@ import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Getter
 @Slf4j
@@ -73,16 +78,21 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     private Integer getNextId() {
         Integer currentMaxId = films.keySet()
-                                    .stream()
-                                    .mapToInt(id -> id)
-                                    .peek(id -> log.info("ID сгенерирован: {}", id))
-                                    .max()
-                                    .orElse(0) + 1;
+                .stream()
+                .mapToInt(id -> id)
+                .peek(id -> log.info("ID сгенерирован: {}", id))
+                .max()
+                .orElse(0) + 1;
         return currentMaxId;
     }
 
     @Override
     public List<Film> getPopularFilms(Integer count) {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public List<Film> getDirectorSort(Integer directorId, String sortBy) {
         return new ArrayList<>();
     }
 }

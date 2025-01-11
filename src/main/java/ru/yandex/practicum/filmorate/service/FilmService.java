@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.FilmNotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.*;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.util.*;
+import java.util.Collection;
 
 @Service
 public class FilmService {
@@ -15,12 +15,11 @@ public class FilmService {
 
     public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage) {
         this.filmStorage = filmStorage;
-
     }
 
     public Film getFilmById(Integer id) {
         return filmStorage.getFilmById(id)
-                          .orElseThrow(() -> new FilmNotFoundException("Фильм с id " + id + " не найден."));
+                .orElseThrow(() -> new FilmNotFoundException("Фильм с id " + id + " не найден."));
     }
 
     public Collection<Film> findAll() {
