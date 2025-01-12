@@ -104,12 +104,12 @@ public class FilmTest {
         List<Film> filmsDirList = filmDbStorage.getSearch("DIR", "director");
 
         assertEquals(filmsDirList.size(), 1);
-        assertEquals(filmsDirList.get(0).getId(), 1);
+        assertEquals(filmsDirList.get(0).getName(), "filmName1");
 
         List<Film> filmsTitleList = filmDbStorage.getSearch("E2", "title");
 
         assertEquals(filmsTitleList.size(), 1);
-        assertEquals(filmsTitleList.get(0).getId(), 2);
+        assertEquals(filmsTitleList.get(0).getName(), "filmName2");
 
         List<Film> filmsAllList = filmDbStorage.getSearch("diR", "title,director");
 
