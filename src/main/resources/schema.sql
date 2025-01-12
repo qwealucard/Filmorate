@@ -48,3 +48,14 @@ CREATE TABLE IF NOT EXISTS film_likes (
   film_id INTEGER REFERENCES films(id)
 );
 
+CREATE TABLE IF NOT EXISTS reviews (
+    review_id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    is_positive BOOLEAN NOT NULL,
+    user_id INT NOT NULL,
+    film_id INT NOT NULL,
+    useful INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE
+
+);
