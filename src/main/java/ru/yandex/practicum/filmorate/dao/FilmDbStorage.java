@@ -10,6 +10,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
+import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.GenreException;
 import ru.yandex.practicum.filmorate.exceptions.MPAException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
@@ -316,6 +317,59 @@ public class FilmDbStorage implements FilmStorage {
             }
         });
         return films;
+    }
+
+    @Override
+    public List<Film> getSearch(String query, String by) {
+
+        Set<Film> set = new HashSet<>();
+
+        if (by.contains("director")) {
+            set.addAll(getSearchBy("%" + query + "%", "director"));
+        }
+        if (by.contains("title")) {
+            set.addAll(getSearchBy("%" + query + "%", "title"));
+        }
+
+        return new ArrayList<>(set);
+    }
+
+    private List<Film> getSearchBy(String query, String by) {
+        String sql = "WITH res AS (SELECT COUNT(user_id) likes, film_id FROM film_likes GROUP BY film_id)\n" +
+                "SELECT f.*, m.MPARating_id, m.MPA_Rating_name FROM films f\n" +
+                "LEFT JOIN film_directors fd ON f.id = fd.film_id \n" +
+                "LEFT JOIN directors d ON d.id = fd.directors_id \n" +
+                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id \n" +
+                "LEFT JOIN res AS r ON r.film_id = f.id\n" +
+                "WHERE CASE WHEN ? = 'director' THEN UPPER(d.name) LIKE ? ELSE UPPER(f.name) LIKE ? END ORDER BY r.likes DESC";
+        return jdbc.query(sql, (rs, rowNum) -> {
+            Film film = new Film(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    rs.getDate("release_date").toLocalDate(),
+                    rs.getInt("duration"),
+                    new ArrayList<>(),
+                    rs.getObject("mpa") != null ? new MPARating(
+                            rs.getInt("MPARating_id"),
+                            rs.getString("MPA_Rating_name")
+                    ) : null,
+                    new ArrayList<>()
+            );
+            film.setDirectors(getDirectorByIdFilm(film.getId()));
+            film.setGenres(getGenresByIdFilm(film.getId()));
+            return film;
+        }, by, query.toUpperCase(), query.toUpperCase());
+    }
+
+    private List<Director> getDirectorByIdFilm(Integer idFilm) {
+        String sql = "SELECT d.* FROM directors d JOIN film_directors fd ON fd.directors_id = d.id WHERE fd.film_id = ?";
+        return jdbc.query(sql, new DirectorRowMapper(), idFilm);
+    }
+
+    private List<Genre> getGenresByIdFilm(Integer idFilm) {
+        String sql = "SELECT g.* FROM genres g JOIN film_genres fg ON fg.genre_id = g.genre_id WHERE fg.film_id = ?";
+        return jdbc.query(sql, new GenreRowMapper(), idFilm);
     }
 
     private List<Film> getFilmSortYear(Integer directorId) {

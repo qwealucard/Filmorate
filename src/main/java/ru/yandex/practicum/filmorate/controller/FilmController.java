@@ -77,4 +77,10 @@ public class FilmController {
     public List<Film> getDirectorSort(@PathVariable Integer directorId, @RequestParam @NonNull String sortBy) {
         return filmDirectorsService.getDirectorSort(directorId, sortBy);
     }
+
+    @GetMapping("/search")
+    @ResponseStatus(HttpStatus.OK)
+    public List<Film> getSearch(@RequestParam String query, @RequestParam @NonNull String by) {
+        return filmService.getSearch(query, by);
+    }
 }
