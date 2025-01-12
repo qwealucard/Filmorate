@@ -24,8 +24,8 @@ public class FilmRowMapper implements RowMapper<Film> {
                 new MPARating(
                         resultSet.getInt("MPARating_id"),
                         resultSet.getString("MPA_Rating_name")
-                )
-
+                ),
+                new ArrayList<>()
         );
     }
 }
