@@ -1,4 +1,4 @@
-    package ru.yandex.practicum.filmorate.storage;
+    package ru.yandex.practicum.filmorate.dao;
 
     import org.springframework.jdbc.core.JdbcTemplate;
     import org.springframework.jdbc.core.RowMapper;
@@ -22,10 +22,12 @@
 
         public Review addReview(Review review) {
             validateReview(review);
+            checkUserAndFilmExist(review.getUserId(), review.getFilmId()); // Проверка существования
+
             String sql = "INSERT INTO reviews (content, is_positive, user_id, film_id, useful) VALUES (?, ?, ?, ?, 0)";
             jdbcTemplate.update(sql,
                     review.getContent(),
-                    review.isPositive(),
+                    review.getIsPositive(),
                     review.getUserId(),
                     review.getFilmId());
 
@@ -42,8 +44,10 @@
                 throw new ValidationException("Review ID cannot be null for update.");
             }
             validateReview(review);
+            checkUserAndFilmExist(review.getUserId(), review.getFilmId()); // Проверка существования
+
             String sql = "UPDATE reviews SET content = ?, is_positive = ? WHERE review_id = ?";
-            int rowsUpdated = jdbcTemplate.update(sql, review.getContent(), review.isPositive(), review.getReviewId());
+            int rowsUpdated = jdbcTemplate.update(sql, review.getContent(), review.getIsPositive(), review.getReviewId());
 
             if (rowsUpdated == 0) {
                 throw new EntityNotFoundException("Review with ID " + review.getReviewId() + " not found.");
@@ -84,8 +88,17 @@
             if (!existsById(reviewId)) {
                 throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
             }
-            String sql = "MERGE INTO review_likes (review_id, user_id, is_like) KEY (review_id, user_id) VALUES (?, ?, TRUE)";
-            jdbcTemplate.update(sql, reviewId, userId);
+
+            String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
+
+            if (count != null && count > 0) {
+                String updateSql = "UPDATE review_likes SET is_like = TRUE WHERE review_id = ? AND user_id = ?";
+                jdbcTemplate.update(updateSql, reviewId, userId);
+            } else {
+                String insertSql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, TRUE)";
+                jdbcTemplate.update(insertSql, reviewId, userId);
+            }
 
             updateUseful(reviewId);
         }
@@ -94,8 +107,17 @@
             if (!existsById(reviewId)) {
                 throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
             }
-            String sql = "MERGE INTO review_likes (review_id, user_id, is_like) KEY (review_id, user_id) VALUES (?, ?, FALSE)";
-            jdbcTemplate.update(sql, reviewId, userId);
+
+            String checkSql = "SELECT COUNT(*) FROM review_likes WHERE review_id = ? AND user_id = ?";
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, reviewId, userId);
+
+            if (count != null && count > 0) {
+                String updateSql = "UPDATE review_likes SET is_like = FALSE WHERE review_id = ? AND user_id = ?";
+                jdbcTemplate.update(updateSql, reviewId, userId);
+            } else {
+                String insertSql = "INSERT INTO review_likes (review_id, user_id, is_like) VALUES (?, ?, FALSE)";
+                jdbcTemplate.update(insertSql, reviewId, userId);
+            }
 
             updateUseful(reviewId);
         }
@@ -125,19 +147,6 @@
             return count != null && count > 0;
         }
 
-        private static class ReviewRowMapper implements RowMapper<Review> {
-            @Override
-            public Review mapRow(ResultSet rs, int rowNum) throws SQLException {
-                Review review = new Review();
-                review.setReviewId(rs.getInt("review_id"));
-                review.setContent(rs.getString("content"));
-                review.setPositive(rs.getBoolean("is_positive"));
-                review.setUserId(rs.getInt("user_id"));
-                review.setFilmId(rs.getInt("film_id"));
-                review.setUseful(rs.getInt("useful"));
-                return review;
-            }
-        }
         private void validateReview(Review review) {
             if (review.getContent() == null || review.getContent().isBlank()) {
                 throw new ValidationException("Review content cannot be null or blank.");
@@ -149,4 +158,35 @@
                 throw new ValidationException("Review must have a valid film ID.");
             }
         }
+
+        // Проверка существования фильма и пользователя
+        private void checkUserAndFilmExist(Integer userId, Integer filmId) {
+            String userCheckSql = "SELECT COUNT(*) FROM users WHERE id = ?";
+            String filmCheckSql = "SELECT COUNT(*) FROM films WHERE id = ?";
+
+            Integer userCount = jdbcTemplate.queryForObject(userCheckSql, Integer.class, userId);
+            if (userCount == null || userCount == 0) {
+                throw new EntityNotFoundException("User with ID " + userId + " does not exist.");
+            }
+
+            Integer filmCount = jdbcTemplate.queryForObject(filmCheckSql, Integer.class, filmId);
+            if (filmCount == null || filmCount == 0) {
+                throw new EntityNotFoundException("Film with ID " + filmId + " does not exist.");
+            }
+        }
+
+        private static class ReviewRowMapper implements RowMapper<Review> {
+            @Override
+            public Review mapRow(ResultSet rs, int rowNum) throws SQLException {
+                Review review = new Review();
+                review.setReviewId(rs.getInt("review_id"));
+                review.setContent(rs.getString("content"));
+                review.setIsPositive(rs.getBoolean("is_positive"));
+                review.setUserId(rs.getInt("user_id"));
+                review.setFilmId(rs.getInt("film_id"));
+                review.setUseful(rs.getInt("useful"));
+                return review;
+            }
+        }
+
     }
