@@ -41,8 +41,7 @@ class ReviewStorageTest {
 
         // Случайные данные для фильма
         String filmJson = String.format("""
-                {
-                  "name": "%s",
+                {"name": "%s",
                   "description": "%s",
                   "releaseDate": "%s",
                   "duration": %d,
@@ -61,8 +60,7 @@ class ReviewStorageTest {
 
         // Случайные данные для пользователя
         String userJson = String.format("""
-                {
-                  "login": "%s",
+                {"login": "%s",
                   "name": "%s",
                   "email": "%s",
                   "birthday": "%s"
