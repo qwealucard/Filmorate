@@ -41,14 +41,14 @@ class ReviewStorageTest {
 
         // Случайные данные для фильма
         String filmJson = String.format("""
-                        {
-                          "name": "%s",
-                          "description": "%s",
-                          "releaseDate": "%s",
-                          "duration": %d,
-                          "mpa": { "id": 1 }
-                        }
-                        """,
+                {
+                  "name": "%s",
+                  "description": "%s",
+                  "releaseDate": "%s",
+                  "duration": %d,
+                  "mpa": { "id": 1 }
+                }
+                """,
                 faker.book().title(),
                 faker.lorem().sentence(),
                 LocalDate.of(faker.number().numberBetween(1950, 2023), faker.number().numberBetween(1, 12), faker.number().numberBetween(1, 28)),
@@ -61,13 +61,13 @@ class ReviewStorageTest {
 
         // Случайные данные для пользователя
         String userJson = String.format("""
-                        {
-                          "login": "%s",
-                          "name": "%s",
-                          "email": "%s",
-                          "birthday": "%s"
-                        }
-                        """,
+                {
+                  "login": "%s",
+                  "name": "%s",
+                  "email": "%s",
+                  "birthday": "%s"
+                }
+                """,
                 faker.name().username(),
                 faker.name().fullName(),
                 faker.internet().emailAddress(),
