@@ -2,6 +2,8 @@ package ru.yandex.practicum.filmorate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,42 +40,41 @@ class ReviewStorageTest {
     @BeforeEach
     void setUp() throws Exception {
         faker = new Faker();
+        Gson gson = new Gson();
 
         // Случайные данные для фильма
-        String filmJson = String.format("""
-                {"name": "%s",
-                  "description": "%s",
-                  "releaseDate": "%s",
-                  "duration": %d,
-                  "mpa": { "id": 1 }
-                }
-                """,
-                faker.book().title(),
-                faker.lorem().sentence(),
-                LocalDate.of(faker.number().numberBetween(1950, 2023), faker.number().numberBetween(1, 12), faker.number().numberBetween(1, 28)),
-                faker.number().numberBetween(60, 200)
-        );
+        JsonObject filmJson = new JsonObject();
+        filmJson.addProperty("name", faker.book().title());
+        filmJson.addProperty("description", faker.lorem().sentence());
+        filmJson.addProperty("releaseDate", LocalDate.of(
+                faker.number().numberBetween(1950, 2023),
+                faker.number().numberBetween(1, 12),
+                faker.number().numberBetween(1, 28)
+        ).toString());
+        filmJson.addProperty("duration", faker.number().numberBetween(60, 200));
+        JsonObject mpaJson = new JsonObject();
+        mpaJson.addProperty("id", 1);
+        filmJson.add("mpa", mpaJson);
+
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(filmJson))
+                        .content(gson.toJson(filmJson)))
                 .andExpect(status().isOk());
 
         // Случайные данные для пользователя
-        String userJson = String.format("""
-                {"login": "%s",
-                  "name": "%s",
-                  "email": "%s",
-                  "birthday": "%s"
-                }
-                """,
-                faker.name().username(),
-                faker.name().fullName(),
-                faker.internet().emailAddress(),
-                LocalDate.of(faker.number().numberBetween(1950, 2005), faker.number().numberBetween(1, 12), faker.number().numberBetween(1, 28))
-        );
+        JsonObject userJson = new JsonObject();
+        userJson.addProperty("login", faker.name().username());
+        userJson.addProperty("name", faker.name().fullName());
+        userJson.addProperty("email", faker.internet().emailAddress());
+        userJson.addProperty("birthday", LocalDate.of(
+                faker.number().numberBetween(1950, 2005),
+                faker.number().numberBetween(1, 12),
+                faker.number().numberBetween(1, 28)
+        ).toString());
+
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(userJson))
+                        .content(gson.toJson(userJson)))
                 .andExpect(status().isOk());
 
         // Создание объекта Review для тестов
