@@ -10,6 +10,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
+import ru.yandex.practicum.filmorate.dao.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.GenreException;
 import ru.yandex.practicum.filmorate.exceptions.MPAException;
@@ -402,6 +403,48 @@ public class FilmDbStorage implements FilmStorage {
                 new ArrayList<>()
         ), directorId);
         return films;
+    }
+
+    public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
+        // Базовый SQL-запрос
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name AS mpa_name, " +
+                        "COUNT(fl.user_id) AS likes " +
+                        "FROM films f " +
+                        "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
+                        "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
+                        "LEFT JOIN film_genres fg ON f.id = fg.film_id ");
+
+        // Условия фильтрации
+        if (genreId != null || year != null) {
+            sql.append("WHERE ");
+            if (genreId != null) {
+                sql.append("fg.genre_id = ? ");
+            }
+            if (year != null) {
+                if (genreId != null) {
+                    sql.append("AND ");
+                }
+                sql.append("YEAR(f.release_date) = ? ");
+            }
+        }
+
+        // Группировка и сортировка
+        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPA_Rating_name " +
+                "ORDER BY likes DESC " +  "LIMIT ?");
+
+        // Подготовка параметров для запроса
+        List<Object> params = new ArrayList<>();
+        if (genreId != null) {
+            params.add(genreId);
+        }
+        if (year != null) {
+            params.add(year);
+        }
+        params.add(count);
+
+        // Выполнение запроса и возврат результата
+        return jdbc.query(sql.toString(), new FilmRowMapper(), params.toArray());
     }
 }
 
