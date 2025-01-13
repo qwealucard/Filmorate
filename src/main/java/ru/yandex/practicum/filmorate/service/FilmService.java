@@ -23,7 +23,7 @@ public class FilmService {
                           .orElseThrow(() -> new FilmNotFoundException("Фильм с id " + id + " не найден."));
     }
 
-    public Collection<Film> findAll() {
+    public List<Film> findAll() {
         return filmStorage.findAll();
     }
 

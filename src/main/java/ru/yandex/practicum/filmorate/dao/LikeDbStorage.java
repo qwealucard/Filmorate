@@ -6,6 +6,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.storage.LikeStorage;
 
+import java.util.List;
+
 @Slf4j
 @Repository
 @AllArgsConstructor
@@ -46,5 +48,11 @@ public class LikeDbStorage implements LikeStorage {
         log.info("Удаляем лайк для фильма с id " + filmId + " от пользователя с id " + userId);
         String sql = "DELETE FROM film_likes WHERE user_id = ? AND film_id = ?";
         jdbc.update(sql, userId, filmId);
+    }
+
+    @Override
+    public List<Integer> getLikedFilmIds(Integer userId) {
+        String sql = "SELECT film_id FROM film_likes WHERE user_id = ?";
+        return jdbc.query(sql, (rs, rowNum) -> rs.getInt("film_id"), userId);
     }
 }

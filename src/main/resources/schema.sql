@@ -5,6 +5,7 @@ DROP TABLE if EXISTS genres CASCADE;
 DROP TABLE if EXISTS film_likes CASCADE;
 DROP TABLE if EXISTS friendship CASCADE;
 DROP TABLE if EXISTS film_genres CASCADE;
+DROP TABLE if EXISTS recommendation CASCADE;
 
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
@@ -47,4 +48,3 @@ CREATE TABLE IF NOT EXISTS film_likes (
   user_id INTEGER REFERENCES users(id),
   film_id INTEGER REFERENCES films(id)
 );
-

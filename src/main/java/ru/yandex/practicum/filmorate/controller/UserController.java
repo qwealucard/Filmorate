@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FilmRecommendationService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
@@ -20,6 +22,8 @@ import java.util.List;
 public class UserController {
 
     UserService userService;
+    private final FilmRecommendationService recommendationService;
+
 
     @GetMapping
     public Collection<User> findAll() {
@@ -58,5 +62,10 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     public List<User> getCommonFriends(@PathVariable Integer id, @PathVariable Integer otherId) {
         return userService.getCommonFriends(id, otherId);
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public List<Film> getRecommendations(@PathVariable Integer id) {
+        return recommendationService.getRecommendations(id);
     }
 }

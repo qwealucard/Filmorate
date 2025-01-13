@@ -89,7 +89,7 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    public Collection<Film> findAll() {
+    public List<Film> findAll() {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name " +
                 "FROM films f LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id";
 
@@ -107,6 +107,7 @@ public class FilmDbStorage implements FilmStorage {
         ));
         Map<Integer, List<Genre>> allFilmGenres = getAllFilmGenres();
         films.forEach(film -> film.setGenres(allFilmGenres.getOrDefault(film.getId(), List.of())));
+        System.out.println("Размер списка фильмов" + films.size());
         return films;
     }
 

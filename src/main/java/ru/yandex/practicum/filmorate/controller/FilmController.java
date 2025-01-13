@@ -10,7 +10,6 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmLikeService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
-import java.util.Collection;
 import java.util.List;
 
 @Slf4j
@@ -23,7 +22,7 @@ public class FilmController {
     private final FilmLikeService filmLikeService;
 
     @GetMapping
-    public Collection<Film> findAll() {
+    public List<Film> findAll() {
         return filmService.findAll();
     }
 
