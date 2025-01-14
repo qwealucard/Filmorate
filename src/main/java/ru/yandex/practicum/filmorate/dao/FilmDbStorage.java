@@ -6,18 +6,18 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-
 import ru.yandex.practicum.filmorate.exceptions.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.sql.PreparedStatement;
 import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.*;
@@ -28,6 +28,7 @@ import java.util.*;
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
     private JdbcTemplate jdbc;
+    private RowMapper<Film> mapper;
 
     @Override
     public Film create(Film film) {
@@ -253,6 +254,29 @@ public class FilmDbStorage implements FilmStorage {
             return null;
         });
         return allFilmGenres;
+    }
+
+    public List<Film> getCommonFilms(Integer userId, Integer friendId) {
+
+        String sql = """
+                SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name
+                FROM films f
+                LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id
+                JOIN film_likes fl1 ON f.id = fl1.FILM_ID AND fl1.USER_ID = ?
+                JOIN film_likes fl2 ON f.id = fl2.FILM_ID AND fl2.USER_ID = ?
+                ORDER BY (SELECT COUNT(*) FROM film_likes fl WHERE fl.FILM_ID = f.id) DESC
+                """;
+
+        List<Film> films = jdbc.query(sql, new Object[]{userId, friendId}, mapper);
+
+        for (Film film : films) {
+            List<Genre> genres = getFilmGenresById(film.getId());
+            if (genres.isEmpty()) {
+                break;
+            }
+            film.setGenres(genres);
+        }
+        return films;
     }
 }
 
