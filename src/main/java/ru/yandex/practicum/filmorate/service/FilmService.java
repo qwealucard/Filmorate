@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -22,7 +23,7 @@ public class FilmService {
                 .orElseThrow(() -> new FilmNotFoundException("Фильм с id " + id + " не найден."));
     }
 
-    public List<Film> findAll() {
+    public Collection<Film> findAll() {
         return filmStorage.findAll();
     }
 
@@ -45,5 +46,9 @@ public class FilmService {
 
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         return filmStorage.getPopularFilms(count, genreId, year);
+    }
+
+    public void deleteFilmById(Integer id) {
+        filmStorage.deleteFilmById(id);
     }
 }

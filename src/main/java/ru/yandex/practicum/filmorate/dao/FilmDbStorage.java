@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.dao;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -109,7 +110,7 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    public List<Film> findAll() {
+    public Collection<Film> findAll() {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name " +
                 "FROM films f LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id";
 
@@ -128,7 +129,6 @@ public class FilmDbStorage implements FilmStorage {
         ));
         Map<Integer, List<Genre>> allFilmGenres = getAllFilmGenres();
         films.forEach(film -> film.setGenres(allFilmGenres.getOrDefault(film.getId(), List.of())));
-        System.out.println("Размер списка фильмов" + films.size());
         return films;
     }
 
@@ -445,6 +445,25 @@ public class FilmDbStorage implements FilmStorage {
 
         // Выполнение запроса и возврат результата
         return jdbc.query(sql.toString(), new FilmRowMapper(), params.toArray());
+    }
+
+    public void deleteFilmById(Integer id) {
+        try {
+            String deleteLikesSql = "DELETE FROM film_likes WHERE film_id = ?";
+            jdbc.update(deleteLikesSql, id);
+
+            String deleteFilmGenresSql = "DELETE FROM film_genres WHERE film_id = ?";
+            jdbc.update(deleteFilmGenresSql, id);
+
+            String deleteFilmSql = "DELETE FROM films WHERE id = ?";
+            int rowsAffected = jdbc.update(deleteFilmSql, id);
+
+            if (rowsAffected == 0) {
+                throw new NotFoundException("Фильм с id " + id + " не найден");
+            }
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Ошибка при удалении фильма с id " + id + ": " + e.getMessage(), e);
+        }
     }
 }
 
