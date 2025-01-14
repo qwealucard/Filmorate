@@ -1,13 +1,18 @@
 package ru.yandex.practicum.filmorate.model;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @AllArgsConstructor
+@NoArgsConstructor
 @Data
 public class Film {
     private Integer id;
@@ -24,4 +29,5 @@ public class Film {
     private Integer duration;
     private List<Genre> genres;
     private MPARating mpa;
+    private List<Director> directors;
 }
