@@ -64,9 +64,9 @@ public class ReviewService {
 
     public List<Review> getReviews(Integer filmId, Integer count) {
         log.info("Fetching reviews for film ID: {}, count: {}", filmId, count);
-        if (count == null || count <= 0) {
-            count = 10; // Значение по умолчанию
-            log.info("Count not specified or invalid, defaulting to 10.");
+        if (filmId  == null && (count == null || count <= 0)) {
+            count = 0; // Значение по умолчанию
+            log.info("Count not specified or invalid, defaulting to 0.");
         }
         List<Review> reviews = reviewStorage.getReviews(filmId, count);
         log.info("Fetched {} reviews.", reviews.size());
