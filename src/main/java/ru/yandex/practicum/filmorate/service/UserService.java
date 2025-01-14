@@ -63,5 +63,13 @@ public class UserService {
     public User update(User user) {
         return userStorage.update(user);
     }
+
+    public void deleteById(Integer id) {
+        userStorage.deleteUserById(id);
+    }
+
+    public Optional<User> getUserById(Integer id) {
+        return userStorage.getUserById(id);
+    }
 }
 

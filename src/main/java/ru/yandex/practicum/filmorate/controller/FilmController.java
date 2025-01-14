@@ -128,4 +128,9 @@ public class FilmController {
         log.info("Returning {} popular films with genreId: {} and year: {}", popularFilms.size(), genreId, year);
         return popularFilms;
     }
+
+    @DeleteMapping("/{id}")
+    public void deleteFilmById(@PathVariable Integer id) {
+        filmService.deleteFilmById(id);
+    }
 }
