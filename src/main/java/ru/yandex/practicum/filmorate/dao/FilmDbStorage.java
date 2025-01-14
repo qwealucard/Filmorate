@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.dao;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -254,6 +255,25 @@ public class FilmDbStorage implements FilmStorage {
             return null;
         });
         return allFilmGenres;
+    }
+
+    public void deleteFilmById(Integer id) {
+        try {
+            String deleteLikesSql = "DELETE FROM film_likes WHERE film_id = ?";
+            jdbc.update(deleteLikesSql, id);
+
+            String deleteFilmGenresSql = "DELETE FROM film_genres WHERE film_id = ?";
+            jdbc.update(deleteFilmGenresSql, id);
+
+            String deleteFilmSql = "DELETE FROM films WHERE id = ?";
+            int rowsAffected = jdbc.update(deleteFilmSql, id);
+
+            if (rowsAffected == 0) {
+                throw new NotFoundException("Фильм с id " + id + " не найден");
+            }
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Ошибка при удалении фильма с id " + id + ": " + e.getMessage(), e);
+        }
     }
 }
 

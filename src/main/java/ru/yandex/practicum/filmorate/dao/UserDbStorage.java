@@ -88,13 +88,13 @@ public class UserDbStorage implements UserStorage {
             return Optional.of(user);
         } catch (DataAccessException e) {
             log.error("Ошибка при поиске пользователя с id:" + id + ": " + e.getMessage());
-            return Optional.empty();
+            throw new NotFoundException("Пользователь не найден");
         }
     }
 
     @Override
     public Collection<User> findAll() {
-        String sql = "SELECT id, name, email, login, birthday FROM users";
+        String sql = "SELECT id, name, email, login, birthday FROM users ORDER BY id ASC";
         try {
             return jdbc.query(sql, (rs, rowNum) -> {
                 User user = new User(
@@ -110,6 +110,26 @@ public class UserDbStorage implements UserStorage {
         } catch (DataAccessException e) {
             log.error("Ошибка при получении всех пользователей" + e.getMessage());
             return List.of();
+        }
+    }
+
+    @Override
+    public void deleteUserById(Integer id) {
+        try {
+            String deleteLikesSql = "DELETE FROM film_likes WHERE user_id = ?";
+            jdbc.update(deleteLikesSql, id);
+
+            String deleteFriendshipsSql = "DELETE FROM friendship WHERE user_id = ? OR friend_id = ?";
+            jdbc.update(deleteFriendshipsSql, id, id);
+
+            String deleteUserSql = "DELETE FROM users WHERE id = ?";
+            int rowsAffected = jdbc.update(deleteUserSql, id);
+
+            if (rowsAffected == 0) {
+                throw new NotFoundException("Пользователь с id " + id + " не найден");
+            }
+        }  catch (RuntimeException e) {
+            throw new RuntimeException("Ошибка при удалении пользователя " + id + ": " + e.getMessage(), e);
         }
     }
 }

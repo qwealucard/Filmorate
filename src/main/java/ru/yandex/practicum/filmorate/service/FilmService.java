@@ -34,4 +34,8 @@ public class FilmService {
     public Film update(Film film) {
         return filmStorage.update(film);
     }
+
+    public void deleteFilmById(Integer id) {
+        filmStorage.deleteFilmById(id);
+    }
 }

@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -23,7 +24,6 @@ public class UserController {
 
     UserService userService;
     private final FilmRecommendationService recommendationService;
-
 
     @GetMapping
     public Collection<User> findAll() {
@@ -67,5 +67,15 @@ public class UserController {
     @GetMapping("/{id}/recommendations")
     public List<Film> getRecommendations(@PathVariable Integer id) {
         return recommendationService.getRecommendations(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteUserById(@PathVariable Integer id) {
+        userService.deleteById(id);
+    }
+
+    @GetMapping("/{id}")
+    public Optional<User> getUserById(@PathVariable Integer id) {
+        return userService.getUserById(id);
     }
 }

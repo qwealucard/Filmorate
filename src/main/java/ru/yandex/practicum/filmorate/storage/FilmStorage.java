@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.List;
@@ -16,4 +17,6 @@ public interface FilmStorage {
     Optional<Film> getFilmById(Integer id);
 
     List<Film> getPopularFilms(Integer count);
+
+    void deleteFilmById(Integer id);
 }
