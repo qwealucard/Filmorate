@@ -94,7 +94,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Collection<User> findAll() {
-        String sql = "SELECT id, name, email, login, birthday FROM users";
+        String sql = "SELECT id, name, email, login, birthday FROM users ORDER BY id ASC";
         try {
             return jdbc.query(sql, (rs, rowNum) -> {
                 User user = new User(
