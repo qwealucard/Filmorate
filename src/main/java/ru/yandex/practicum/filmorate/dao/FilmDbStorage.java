@@ -7,18 +7,13 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
-import ru.yandex.practicum.filmorate.dao.mappers.FilmWithGenresAndDirectorsRowMapper;
+import ru.yandex.practicum.filmorate.dao.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
-import ru.yandex.practicum.filmorate.exceptions.GenreException;
-import ru.yandex.practicum.filmorate.exceptions.MPAException;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ReleaseDateException;
-import ru.yandex.practicum.filmorate.exceptions.UpdateFilmsException;
+import ru.yandex.practicum.filmorate.exceptions.*;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -37,7 +32,6 @@ import java.util.*;
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
     private JdbcTemplate jdbc;
-    private RowMapper<Film> mapper;
 
     @Override
     public Film create(Film film) {
@@ -266,7 +260,7 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name, COUNT(l.user_id) as likesCount " +
                 "FROM films f LEFT JOIN film_likes l ON f.id = l.film_id " +
                 "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
-                "GROUP BY f.id ORDER BY likesCount , f.id  LIMIT ?";
+                "GROUP BY f.id ORDER BY likesCount DESC, f.id DESC LIMIT ?";
         return jdbc.query(sql, (rs, rowNum) -> {
             Film film = new Film(
                     rs.getInt("id"),
@@ -404,18 +398,12 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         // Базовый SQL-запрос
         StringBuilder sql = new StringBuilder(
-                "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
-                        "m.MPARating_id, m.MPA_Rating_name AS mpa_name, " +
-                        "ARRAY_AGG(DISTINCT g.genre_id || ':' || g.genre_name) AS genres, " +
-                        "ARRAY_AGG(DISTINCT d.id || ':' || d.name) AS directors, " +
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name AS mpa_name, " +
                         "COUNT(fl.user_id) AS likes " +
                         "FROM films f " +
                         "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
                         "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
-                        "LEFT JOIN film_genres fg ON f.id = fg.film_id " +
-                        "LEFT JOIN genres g ON fg.genre_id = g.genre_id " +
-                        "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
-                        "LEFT JOIN directors d ON fd.directors_id = d.id ");
+                        "LEFT JOIN film_genres fg ON f.id = fg.film_id ");
 
         // Условия фильтрации
         if (genreId != null || year != null) {
@@ -432,9 +420,8 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         // Группировка и сортировка
-        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name " +
-                "ORDER BY likes DESC " +
-                "LIMIT ?");
+        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPA_Rating_name " +
+                "ORDER BY likes DESC " +  "LIMIT ?");
 
         // Подготовка параметров для запроса
         List<Object> params = new ArrayList<>();
@@ -446,17 +433,8 @@ public class FilmDbStorage implements FilmStorage {
         }
         params.add(count);
 
-        // Логирование SQL-запроса и параметров
-        log.debug("Executing SQL query: {}", sql);
-        log.debug("Query parameters: {}", params);
-
-        // Выполнение запроса
-        List<Film> films = jdbc.query(sql.toString(), new FilmWithGenresAndDirectorsRowMapper(), params.toArray());
-
-        // Логирование результатов
-        log.debug("Query result: {} films found", films.size());
-
-        return films;
+        // Выполнение запроса и возврат результата
+        return jdbc.query(sql.toString(), new FilmRowMapper(), params.toArray());
     }
 
     public void deleteFilmById(Integer id) {
@@ -479,7 +457,6 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     public List<Film> getCommonFilms(Integer userId, Integer friendId) {
-
         String sql = """
                 SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name
                 FROM films f
@@ -489,16 +466,29 @@ public class FilmDbStorage implements FilmStorage {
                 ORDER BY (SELECT COUNT(*) FROM film_likes fl WHERE fl.FILM_ID = f.id) DESC
                 """;
 
-        List<Film> films = jdbc.query(sql, new Object[]{userId, friendId}, mapper);
+        return jdbc.query(sql, (rs, rowNum) -> {
 
-        for (Film film : films) {
+            Film film = new Film(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    rs.getDate("release_date").toLocalDate(),
+                    rs.getInt("duration"),
+                    new ArrayList<>(),
+                    rs.getObject("mpa") != null ? new MPARating(
+                            rs.getInt("MPARating_id"),
+                            rs.getString("MPA_Rating_name")
+                    ) : null,
+                    new ArrayList<>()
+            );
+
             List<Genre> genres = getFilmGenresById(film.getId());
-            if (genres.isEmpty()) {
-                break;
+            if (!genres.isEmpty()) {
+                film.setGenres(genres);
             }
-            film.setGenres(genres);
-        }
-        return films;
+            return film;
+
+        }, userId, friendId);
     }
 }
 
