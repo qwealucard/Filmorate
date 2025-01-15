@@ -38,7 +38,6 @@ import java.util.*;
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
     private JdbcTemplate jdbc;
-//    private RowMapper<Film> mapper;
 
     @Override
     public Film create(Film film) {
