@@ -7,20 +7,14 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
-import ru.yandex.practicum.filmorate.exceptions.GenreException;
-import ru.yandex.practicum.filmorate.exceptions.MPAException;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ReleaseDateException;
-import ru.yandex.practicum.filmorate.exceptions.UpdateFilmsException;
-import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.exceptions.*;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
@@ -38,7 +32,6 @@ import java.util.*;
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
     private JdbcTemplate jdbc;
-    private RowMapper<Film> mapper;
 
     @Override
     public Film create(Film film) {
@@ -464,7 +457,6 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     public List<Film> getCommonFilms(Integer userId, Integer friendId) {
-
         String sql = """
                 SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name
                 FROM films f
@@ -474,16 +466,29 @@ public class FilmDbStorage implements FilmStorage {
                 ORDER BY (SELECT COUNT(*) FROM film_likes fl WHERE fl.FILM_ID = f.id) DESC
                 """;
 
-        List<Film> films = jdbc.query(sql, new Object[]{userId, friendId}, mapper);
+        return jdbc.query(sql, (rs, rowNum) -> {
 
-        for (Film film : films) {
+            Film film = new Film(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    rs.getDate("release_date").toLocalDate(),
+                    rs.getInt("duration"),
+                    new ArrayList<>(),
+                    rs.getObject("mpa") != null ? new MPARating(
+                            rs.getInt("MPARating_id"),
+                            rs.getString("MPA_Rating_name")
+                    ) : null,
+                    new ArrayList<>()
+            );
+
             List<Genre> genres = getFilmGenresById(film.getId());
-            if (genres.isEmpty()) {
-                break;
+            if (!genres.isEmpty()) {
+                film.setGenres(genres);
             }
-            film.setGenres(genres);
-        }
-        return films;
+            return film;
+
+        }, userId, friendId);
     }
 }
 
