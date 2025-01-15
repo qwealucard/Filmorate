@@ -9,7 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-@Component
+@Component("filmRowMapper")
 public class FilmRowMapper implements RowMapper<Film> {
 
     @Override
