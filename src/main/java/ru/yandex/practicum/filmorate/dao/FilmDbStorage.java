@@ -157,11 +157,33 @@ public class FilmDbStorage implements FilmStorage {
 
         // Получаем все жанры для фильмов
         Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
+        Map<Integer, HashSet<Director>> allFilmDirectors = getAllFilmDirectors();
 
-        // Заполняем жанры для каждого фильма
-        films.forEach(film -> film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>())));
-
+        // Заполняем жанры и режиссеров для каждого фильма
+        films.forEach(film -> {
+            film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirectors(allFilmDirectors.getOrDefault(film.getId(), new HashSet<>()));
+        });
         return films;
+    }
+
+    // Метод для получения всех режиссеров
+    private Map<Integer, HashSet<Director>> getAllFilmDirectors() {
+        String sql = " SELECT fd.film_id, d.id, d.name FROM film_directors fd JOIN directors d ON fd.directors_id = d.id ";
+        Map<Integer, HashSet<Director>> allFilmDirectors = new HashMap<>();
+
+        jdbc.query(sql, (rs, rowNum) -> {
+            Integer filmId = rs.getInt("film_id");
+            Director director = new Director(
+                    rs.getInt("id"),
+                    rs.getString("name")
+            );
+
+            allFilmDirectors.computeIfAbsent(filmId, k -> new HashSet<>()).add(director);
+            return null;
+        });
+
+        return allFilmDirectors;
     }
 
     private void validateMpaRating(MPARating mpaRating) {
