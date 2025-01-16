@@ -203,10 +203,15 @@ public class FilmDbStorage implements FilmStorage {
 
     private MPARating getMpaRatingById(Integer id) {
         String sql = "SELECT MPARating_id, MPA_Rating_name FROM MPA_Ratings WHERE MPARating_id = ?";
-        return jdbc.queryForObject(sql, (rs, rowNum) -> new MPARating(
-                rs.getInt("MPARating_id"),
-                rs.getString("MPA_Rating_name")
-        ), id);
+        try {
+            return jdbc.queryForObject(sql, (rs, rowNum) -> new MPARating(
+                    rs.getInt("MPARating_id"),
+                    rs.getString("MPA_Rating_name")
+            ), id);
+        } catch (EmptyResultDataAccessException e) {
+            log.warn("MPA Rating с id {} не найден", id);
+            return null; // Или выбросить свое исключение, если отсутствие значения критично
+        }
     }
 
     private void addGenreToFilm(Film film) {
@@ -438,13 +443,23 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private List<Film> getSearchBy(String query, String by) {
-        String sql = "WITH res AS (SELECT COUNT(user_id) likes, film_id FROM film_likes GROUP BY film_id)\n" +
-                "SELECT f.*, m.MPARating_id, m.MPA_Rating_name FROM films f\n" +
-                "LEFT JOIN film_directors fd ON f.id = fd.film_id \n" +
-                "LEFT JOIN directors d ON d.id = fd.directors_id \n" +
-                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id \n" +
-                "LEFT JOIN res AS r ON r.film_id = f.id\n" +
-                "WHERE CASE WHEN ? = 'director' THEN UPPER(d.name) LIKE ? ELSE UPPER(f.name) LIKE ? END ORDER BY r.likes DESC";
+        String sql = """
+            WITH res AS (
+                SELECT COUNT(user_id) AS likes, film_id
+                FROM film_likes
+                GROUP BY film_id
+            )
+            SELECT f.*, m.MPARating_id, m.MPA_Rating_name
+            FROM films f
+            LEFT JOIN film_directors fd ON f.id = fd.film_id
+            LEFT JOIN directors d ON d.id = fd.directors_id
+            LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id
+            LEFT JOIN res AS r ON r.film_id = f.id
+            WHERE (UPPER(d.name) LIKE ? AND ? LIKE '%director%')
+               OR (UPPER(f.name) LIKE ? AND ? LIKE '%title%')
+            ORDER BY r.likes DESC
+            """;
+
         return jdbc.query(sql, (rs, rowNum) -> {
             Film film = new Film(
                     rs.getInt("id"),
@@ -462,7 +477,7 @@ public class FilmDbStorage implements FilmStorage {
             film.setDirectors(getDirectorByIdFilm(film.getId()));
             film.setGenres(getGenresByIdFilm(film.getId()));
             return film;
-        }, by, query.toUpperCase(), query.toUpperCase());
+        }, "%" + query.toUpperCase() + "%", by, "%" + query.toUpperCase() + "%", by);
     }
 
     private Set<Director> getDirectorByIdFilm(Integer idFilm) {
