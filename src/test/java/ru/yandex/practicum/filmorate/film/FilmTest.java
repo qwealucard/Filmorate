@@ -15,7 +15,9 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.MPARating;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,91 +33,72 @@ public class FilmTest {
 
     @Test
     public void getDirectorSort() {
+        Director director = createDirector("Director Name");
 
-        Director director = new Director();
-        director.setName("director");
+        Film film1 = createFilm("Film 1", "Description 1", LocalDate.of(2023, 12, 15), Set.of(director));
+        Film film2 = createFilm("Film 2", "Description 2", LocalDate.of(2019, 12, 15), Set.of(director));
+        Film film3 = createFilm("Film 3", "Description 3", LocalDate.of(2022, 12, 15), Set.of(director));
 
-        Director directorCreate = directorDbStorage.create(director);
-
-        Film film1 = new Film();
-        film1.setName("filmName1");
-        film1.setDescription("Descr1");
-        film1.setReleaseDate(LocalDate.of(2023, 12, 15));
-        film1.setDuration(168);
-        film1.setMpa(new MPARating(1, null));
-        film1.setDirectors(List.of(directorCreate));
-
-        Film film2 = new Film();
-        film2.setName("filmName2");
-        film2.setDescription("Descr2");
-        film2.setReleaseDate(LocalDate.of(2019, 12, 15));
-        film2.setDuration(168);
-        film2.setMpa(new MPARating(1, null));
-        film2.setDirectors(List.of(directorCreate));
-
-        Film film3 = new Film();
-        film3.setName("filmName3");
-        film3.setDescription("Descr3");
-        film3.setReleaseDate(LocalDate.of(2022, 12, 15));
-        film3.setDuration(168);
-        film3.setMpa(new MPARating(1, null));
-        film3.setDirectors(List.of(directorCreate));
-
+        // Сохраняем фильмы
         filmDbStorage.create(film1);
         filmDbStorage.create(film2);
         filmDbStorage.create(film3);
 
-        List<Film> filmsList = filmDbStorage.getDirectorSort(directorCreate.getId(), "year");
+        // Получаем фильмы, отсортированные по году
+        List<Film> filmsList = filmDbStorage.getDirectorSort(director.getId(), "year");
 
-        assertEquals(filmsList.size(), 3);
-        assertEquals(filmsList.get(0).getId(), 2);
+        // Проверяем размер и порядок сортировки
+        assertEquals(3, filmsList.size());
+        assertEquals(film2.getName(), filmsList.get(0).getName());
+        assertEquals(film3.getName(), filmsList.get(1).getName());
+        assertEquals(film1.getName(), filmsList.get(2).getName());
+
+        // Проверяем, что режиссер корректно установлен
+        filmsList.forEach(film -> assertEquals(Set.of(director), film.getDirectors()));
     }
 
     @Test
     public void getSearchTest() {
-        Director director = new Director();
-        director.setName("director");
+        Director director = createDirector("Search Director");
 
-        Director directorCreate = directorDbStorage.create(director);
+        Film film1 = createFilm("FilmName1", "Description 1", LocalDate.of(2023, 12, 15), Set.of(director));
+        Film film2 = createFilm("FilmName2", "Description 2", LocalDate.of(2019, 12, 15), new HashSet<>());
+        Film film3 = createFilm("FilmName3Dir", "Description 3", LocalDate.of(2022, 12, 15), new HashSet<>());
 
-        Film film1 = new Film();
-        film1.setName("filmName1");
-        film1.setDescription("Descr1");
-        film1.setReleaseDate(LocalDate.of(2023, 12, 15));
-        film1.setDuration(168);
-        film1.setMpa(new MPARating(1, null));
-        film1.setDirectors(List.of(directorCreate));
-
-        Film film2 = new Film();
-        film2.setName("filmName2");
-        film2.setDescription("Descr2");
-        film2.setReleaseDate(LocalDate.of(2019, 12, 15));
-        film2.setDuration(168);
-        film2.setMpa(new MPARating(1, null));
-
-        Film film3 = new Film();
-        film3.setName("filmName3Dir");
-        film3.setDescription("Descr3");
-        film3.setReleaseDate(LocalDate.of(2022, 12, 15));
-        film3.setDuration(168);
-        film3.setMpa(new MPARating(1, null));
-
+        // Сохраняем фильмы
         filmDbStorage.create(film1);
         filmDbStorage.create(film2);
         filmDbStorage.create(film3);
 
-        List<Film> filmsDirList = filmDbStorage.getSearch("DIR", "director");
+        // Поиск по режиссеру
+        List<Film> filmsDirList = filmDbStorage.getSearch("Search", "director");
+        assertEquals(1, filmsDirList.size());
+        assertEquals("FilmName1", filmsDirList.get(0).getName());
 
-        assertEquals(filmsDirList.size(), 1);
-        assertEquals(filmsDirList.get(0).getName(), "filmName1");
+        // Поиск по названию
+        List<Film> filmsTitleList = filmDbStorage.getSearch("Name2", "title");
+        assertEquals(1, filmsTitleList.size());
+        assertEquals("FilmName2", filmsTitleList.get(0).getName());
 
-        List<Film> filmsTitleList = filmDbStorage.getSearch("E2", "title");
-
-        assertEquals(filmsTitleList.size(), 1);
-        assertEquals(filmsTitleList.get(0).getName(), "filmName2");
-
+        // Поиск по названию и режиссеру
         List<Film> filmsAllList = filmDbStorage.getSearch("diR", "title,director");
+        assertEquals(2, filmsAllList.size());
+    }
 
-        assertEquals(filmsAllList.size(), 2);
+    private Director createDirector(String name) {
+        Director director = new Director();
+        director.setName(name);
+        return directorDbStorage.create(director);
+    }
+
+    private Film createFilm(String name, String description, LocalDate releaseDate, Set<Director> directors) {
+        Film film = new Film();
+        film.setName(name);
+        film.setDescription(description);
+        film.setReleaseDate(releaseDate);
+        film.setDuration(120);
+        film.setMpa(new MPARating(1, "G"));
+        film.setDirectors(directors);
+        return film;
     }
 }
