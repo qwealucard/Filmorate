@@ -442,29 +442,20 @@ public class FilmDbStorage implements FilmStorage {
         return new ArrayList<>(set);
     }
 
-    @SuppressWarnings("checkstyle:Regexp")
+
     private List<Film> getSearchBy(String query, String by) {
         // SQL-запрос для поиска фильмов и режиссеров
-        String sql = """
-            WITH res AS (
-                 SELECT COUNT(user_id) AS likes, film_id
-                FROM film_likes
-                GROUP BY film_id
-            )
-            SELECT f.id, f.name, f.description, f.release_date, f.duration,
-                   m.MPARating_id, m.MPA_Rating_name, 
-                   COALESCE(r.likes, 0) AS likes
-            FROM films f
-            LEFT JOIN film_directors fd ON f.id = fd.film_id
-            LEFT JOIN directors d ON d.id = fd.directors_id
-            LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id
-            LEFT JOIN res r ON r.film_id = f.id
-            WHERE (UPPER(d.name) LIKE ? AND ? LIKE '%director%')
-               OR (UPPER(f.name) LIKE ? AND ? LIKE '%title%')
-            GROUP BY f.id, f.name, f.description, f.release_date, f.duration,
-                     m.MPARating_id, m.MPA_Rating_name, r.likes
-            ORDER BY r.likes DESC, f.name ASC
-            """;
+        String sql = "WITH res AS (SELECT COUNT(user_id) AS likes, film_id FROM film_likes GROUP BY film_id) " +
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, " +
+                "COALESCE(r.likes, 0) AS likes FROM films f " +
+                "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
+                "LEFT JOIN directors d ON d.id = fd.directors_id " +
+                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
+                "LEFT JOIN res r ON r.film_id = f.id " +
+                "WHERE (UPPER(d.name) LIKE ? AND ? LIKE '%director%') " +
+                "OR (UPPER(f.name) LIKE ? AND ? LIKE '%title%') " +
+                "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, r.likes " +
+                "ORDER BY r.likes DESC, f.name ASC";
         // Подготовка параметров для запроса
         String upperQuery = "%" + query.toUpperCase() + "%";
 
