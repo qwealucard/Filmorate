@@ -405,10 +405,19 @@ public class FilmDbStorage implements FilmStorage {
             films = getFilmSortLike(directorId);
         }
 
-        // Устанавливаем режиссеров для каждого фильма
+        // Получаем все жанры и режиссеров для фильмов
+        Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
+        Map<Integer, HashSet<Director>> allFilmDirectors = getAllFilmDirectors();
+
+        // Заполняем жанры, режиссеров и проверяем наличие MPA для каждого фильма
         films.forEach(film -> {
-            Set<Director> directors = getDirectorByIdFilm(film.getId());
-            film.setDirectors(directors);
+            film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirectors(allFilmDirectors.getOrDefault(film.getId(), new HashSet<>()));
+
+            // Если MPA отсутствует, загружаем его вручную
+            if (film.getMpa() == null) {
+                film.setMpa(getMpaRatingById(film.getId()));
+            }
         });
 
         return films;
