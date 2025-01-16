@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -50,7 +49,7 @@ public class FilmRowMapper implements RowMapper<Film> {
                 resultSet.getInt("duration"),                // Продолжительность
                 genres,                                      // Жанры
                 mpaRating,                                   // MPA рейтинг
-                new ArrayList<>()                            // Пустой список лайков (заполняется отдельно)
+                new HashSet<>()                            // Пустой список лайков (заполняется отдельно)
         );
     }
 }

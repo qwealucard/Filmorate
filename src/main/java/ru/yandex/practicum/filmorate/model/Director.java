@@ -16,11 +16,10 @@ public class Director {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Integer id;
 
     @NotNull
     @Size(min = 1, max = 255, message = "Наименование автора не может быть пустой строкой и должно быть не длиннее 255 символов")
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 255)
     private String name;
 }

@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -23,32 +22,43 @@ public class Film {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
     @NotNull
     @NotBlank(message = "Название фильма должно быть указано")
+    @Column(name = "name", nullable = false, length = 255)
     private String name;
+
     @NotNull
     @Size(max = 200, message = "Описание фильма не должно превышать 200 символов")
+    @Column(name = "description", nullable = false, length = 200)
     private String description;
+
     @NotNull
+    @Column(name = "release_date", nullable = false)
     private LocalDate releaseDate;
+
     @NotNull
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
+    @Column(name = "duration", nullable = false)
     private Integer duration;
-    @ManyToMany
+
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
             name = "film_genres",
             joinColumns = @JoinColumn(name = "film_id"),
             inverseJoinColumns = @JoinColumn(name = "genre_id")
     )
     private Set<Genre> genres = new HashSet<>();
-    @ManyToOne
-    @JoinColumn(name = "mpa", referencedColumnName = "MPARating_id")
+
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "mpa", referencedColumnName = "MPARating_id", nullable = false)
     private MPARating mpa;
-    @ManyToMany
+
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
             name = "film_directors",
             joinColumns = @JoinColumn(name = "film_id"),
-            inverseJoinColumns = @JoinColumn(name = "director_id")
+            inverseJoinColumns = @JoinColumn(name = "directors_id")
     )
-    private List<Director> directors;
+    private Set<Director> directors = new HashSet<>();
 }

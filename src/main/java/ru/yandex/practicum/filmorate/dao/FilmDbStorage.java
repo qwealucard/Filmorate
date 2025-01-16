@@ -119,7 +119,7 @@ public class FilmDbStorage implements FilmStorage {
             return film;
         } catch (RuntimeException e) {
             log.error("Ошибка при обновлении фильма " + film.getId() + ": " + e.getMessage());
-            throw new UpdateFilmsException("Ошибка при обновлении фильма");
+            throw e;
         }
     }
 
@@ -151,7 +151,7 @@ public class FilmDbStorage implements FilmStorage {
                     rs.getInt("duration"),
                     new HashSet<>(),  // Жанры будут заполнены позже
                     mpaRating,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
         });
 
@@ -228,17 +228,35 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void addDirectorToFilm(Film film) {
-        try {
-            String sql = "merge into film_directors (film_id, directors_id) values (?, ?)";
-
-            film.getDirectors().forEach(
-                    director -> jdbc.update(
-                            sql,
-                            film.getId(), director.getId())
-            );
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Ошибка при добавлении режиссеров к фильму: " + e);
+        if (film.getDirectors() == null || film.getDirectors().isEmpty()) {
+            log.warn("Список режиссеров для фильма с ID {} пустой или равен null", film.getId());
+            return;
         }
+
+        String sql = "INSERT INTO film_directors (film_id, directors_id) VALUES (?, ?)";
+        List<Director> validDirectors = film.getDirectors().stream()
+                .filter(director -> director.getId() != null)
+                .collect(Collectors.toList());
+
+        if (validDirectors.isEmpty()) {
+            log.warn("Фильм с ID {} содержит только недействительные или пустые режиссеры", film.getId());
+            return;
+        }
+
+        jdbc.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Director director = validDirectors.get(i);
+                ps.setInt(1, film.getId());
+                ps.setInt(2, director.getId());
+                log.info("Добавление режиссера с ID {} к фильму с ID {}", director.getId(), film.getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return validDirectors.size();
+            }
+        });
     }
 
     private boolean filmExists(Integer id) {
@@ -265,7 +283,7 @@ public class FilmDbStorage implements FilmStorage {
                                 rs.getInt("MPARating_id"),
                                 rs.getString("MPA_Rating_name")
                         ),
-                        new ArrayList<>()
+                        new HashSet<>()
                 );
             }, id);
             HashSet<Genre> genres = getFilmGenresById(film.getId());
@@ -275,7 +293,7 @@ public class FilmDbStorage implements FilmStorage {
             } else {
                 film.setGenres(new HashSet<>());
             }
-            List<Director> directors = getFilmDirectorsById(film.getId());
+            Set<Director> directors = getFilmDirectorsById(film.getId());
             if (!directors.isEmpty()) {
                 film.setDirectors(directors);
             }
@@ -296,9 +314,16 @@ public class FilmDbStorage implements FilmStorage {
         return uniqueGenres;
     }
 
-    private List<Director> getFilmDirectorsById(Integer filmId) {
-        String sql = "SELECT d.id, d.name FROM directors d JOIN film_directors fd on d.id = fd.directors_id WHERE fd.film_id = ?";
-        return jdbc.query(sql, new DirectorRowMapper(), filmId);
+    private Set<Director> getFilmDirectorsById(Integer filmId) {
+        String sql = """
+            SELECT d.id, d.name
+            FROM directors d
+            INNER JOIN film_directors fd ON d.id = fd.directors_id
+            WHERE fd.film_id = ?
+            """;
+
+        // Выполняем запрос и преобразуем результат в Set для устранения дубликатов
+        return new HashSet<>(jdbc.query(sql, new DirectorRowMapper(), filmId));
     }
 
     private boolean isGenreAlreadyAdded(Integer filmId, Integer genreId) {
@@ -325,7 +350,7 @@ public class FilmDbStorage implements FilmStorage {
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
             addGenreToFilm(film);
             return film;
@@ -350,19 +375,20 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getDirectorSort(Integer directorId, String sortBy) {
-
-        List<Film> films = new ArrayList<>();
-        if (sortBy.equals("year")) {
-            films.addAll(getFilmSortYear(directorId));
+        // Определяем метод сортировки
+        List<Film> films;
+        if ("year".equalsIgnoreCase(sortBy)) {
+            films = getFilmSortYear(directorId);
         } else {
-            films.addAll(getFilmSortLike(directorId));
+            films = getFilmSortLike(directorId);
         }
-        films.forEach(f -> {
-            List<Director> directors = getFilmDirectorsById(f.getId());
-            if (!directors.isEmpty()) {
-                f.setDirectors(directors);
-            }
+
+        // Устанавливаем режиссеров для каждого фильма
+        films.forEach(film -> {
+            Set<Director> directors = getDirectorByIdFilm(film.getId());
+            film.setDirectors(directors);
         });
+
         return films;
     }
 
@@ -401,7 +427,7 @@ public class FilmDbStorage implements FilmStorage {
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
             film.setDirectors(getDirectorByIdFilm(film.getId()));
             film.setGenres(getGenresByIdFilm(film.getId()));
@@ -409,9 +435,27 @@ public class FilmDbStorage implements FilmStorage {
         }, by, query.toUpperCase(), query.toUpperCase());
     }
 
-    private List<Director> getDirectorByIdFilm(Integer idFilm) {
-        String sql = "SELECT d.* FROM directors d JOIN film_directors fd ON fd.directors_id = d.id WHERE fd.film_id = ?";
-        return jdbc.query(sql, new DirectorRowMapper(), idFilm);
+    private Set<Director> getDirectorByIdFilm(Integer idFilm) {
+        // SQL-запрос для получения списка режиссеров, связанных с фильмом
+        String sql = " SELECT d.id, d.name FROM directors d INNER JOIN film_directors fd ON fd.directors_id = d.id WHERE fd.film_id = ?";
+
+        // Логируем информацию о начале выполнения метода
+        log.debug("Получение списка режиссеров для фильма с ID {}", idFilm);
+
+        // Выполняем запрос и возвращаем результат
+        try {
+            // Преобразуем результат в Set для устранения дублирования
+            Set<Director> directors = new HashSet<>(jdbc.query(sql, new DirectorRowMapper(), idFilm));
+
+            // Логируем полученный результат
+            log.debug("Найдено {} уникальных режиссеров для фильма с ID {}", directors.size(), idFilm);
+
+            return directors;
+        } catch (DataAccessException e) {
+            // Логируем ошибку, если запрос завершился неудачно
+            log.error("Ошибка при получении режиссеров для фильма с ID {}: {}", idFilm, e.getMessage());
+            return Collections.emptySet(); // Возвращаем пустой Set в случае ошибки
+        }
     }
 
     private HashSet<Genre> getGenresByIdFilm(Integer idFilm) {
@@ -430,7 +474,7 @@ public class FilmDbStorage implements FilmStorage {
                 rs.getInt("duration"),
                 new HashSet<>(),
                 null,
-                new ArrayList<>()
+                new HashSet<>()
         ), directorId);
     }
 
@@ -447,7 +491,7 @@ public class FilmDbStorage implements FilmStorage {
                 rs.getInt("duration"),
                 new HashSet<>(),
                 null,
-                new ArrayList<>()
+                new HashSet<>()
         ), directorId);
         return films;
     }
@@ -536,7 +580,7 @@ public class FilmDbStorage implements FilmStorage {
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
 
             HashSet<Genre> genres = getFilmGenresById(film.getId());
