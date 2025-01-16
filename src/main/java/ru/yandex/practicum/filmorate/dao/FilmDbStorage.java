@@ -11,7 +11,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
-import ru.yandex.practicum.filmorate.dao.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.*;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -530,43 +529,64 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getPopularFilms(int count, Integer genreId, Integer year) {
         // Базовый SQL-запрос
         StringBuilder sql = new StringBuilder(
-                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name AS mpa_name, " +
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, " +
                         "COUNT(fl.user_id) AS likes " +
                         "FROM films f " +
                         "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
                         "LEFT JOIN film_likes fl ON f.id = fl.film_id " +
-                        "LEFT JOIN film_genres fg ON f.id = fg.film_id ");
+                        "LEFT JOIN film_genres fg ON f.id = fg.film_id "
+        );
 
         // Условия фильтрации
+        List<Object> params = new ArrayList<>();
         if (genreId != null || year != null) {
             sql.append("WHERE ");
             if (genreId != null) {
                 sql.append("fg.genre_id = ? ");
+                params.add(genreId);
             }
             if (year != null) {
                 if (genreId != null) {
                     sql.append("AND ");
                 }
                 sql.append("YEAR(f.release_date) = ? ");
+                params.add(year);
             }
         }
 
         // Группировка и сортировка
-        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPA_Rating_name " +
-                "ORDER BY likes DESC " +  "LIMIT ?");
+        sql.append("GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPA_Rating_name, m.MPARating_id ")
+                .append("ORDER BY likes DESC ")
+                .append("LIMIT ?");
 
-        // Подготовка параметров для запроса
-        List<Object> params = new ArrayList<>();
-        if (genreId != null) {
-            params.add(genreId);
-        }
-        if (year != null) {
-            params.add(year);
-        }
         params.add(count);
 
-        // Выполнение запроса и возврат результата
-        return jdbc.query(sql.toString(), new FilmRowMapper(), params.toArray());
+        // Выполнение основного запроса
+        List<Film> films = jdbc.query(sql.toString(), (rs, rowNum) -> new Film(
+                rs.getInt("id"),
+                rs.getString("name"),
+                rs.getString("description"),
+                rs.getDate("release_date").toLocalDate(),
+                rs.getInt("duration"),
+                new HashSet<>(), // Жанры будут заполнены позже
+                rs.getObject("MPARating_id") != null ? new MPARating(
+                        rs.getInt("MPARating_id"),
+                        rs.getString("MPA_Rating_name")
+                ) : null,
+                new HashSet<>() // Директоры будут заполнены позже
+        ), params.toArray());
+
+        // Получаем все жанры и директоров
+        Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
+        Map<Integer, HashSet<Director>> allFilmDirectors = getAllFilmDirectors();
+
+        // Заполняем жанры и директоров для каждого фильма
+        films.forEach(film -> {
+            film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirectors(allFilmDirectors.getOrDefault(film.getId(), new HashSet<>()));
+        });
+
+        return films;
     }
 
     public void deleteFilmById(Integer id) {
