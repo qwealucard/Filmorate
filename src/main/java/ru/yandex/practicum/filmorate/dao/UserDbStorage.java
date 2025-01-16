@@ -119,7 +119,7 @@ public class UserDbStorage implements UserStorage {
             String deleteLikesSql = "DELETE FROM film_likes WHERE user_id = ?";
             jdbc.update(deleteLikesSql, id);
 
-            String deleteFriendshipsSql = "DELETE FROM friendship WHERE user_id = ? OR friend_id = ?";
+            String deleteFriendshipsSql = "DELETE FROM friendships WHERE user_id = ? OR friend_id = ?";
             jdbc.update(deleteFriendshipsSql, id, id);
 
             String deleteUserSql = "DELETE FROM users WHERE id = ?";

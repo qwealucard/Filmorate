@@ -1,15 +1,3 @@
-DROP TABLE if EXISTS users CASCADE;
-DROP TABLE if EXISTS films CASCADE;
-DROP TABLE if EXISTS MPA_Ratings CASCADE;
-DROP TABLE if EXISTS genres CASCADE;
-DROP TABLE if EXISTS film_likes CASCADE;
-DROP TABLE if EXISTS friendship CASCADE;
-DROP TABLE if EXISTS film_genres CASCADE;
-DROP TABLE if EXISTS recommendation CASCADE;
-DROP TABLE if EXISTS film_directors CASCADE;
-DROP TABLE if EXISTS directors CASCADE;
-DROP TABLE if EXISTS recommendation CASCADE;
-
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name varchar(255) NOT NULL UNIQUE,
@@ -38,18 +26,22 @@ CREATE TABLE IF NOT EXISTS genres (
 );
 
 CREATE TABLE IF NOT EXISTS film_genres (
-  film_id INTEGER REFERENCES films(id),
-  genre_id INTEGER REFERENCES genres(genre_id)
+  film_id INT REFERENCES films(id) ON DELETE CASCADE,
+  genre_id INT REFERENCES genres(genre_id) ON DELETE CASCADE,
+  PRIMARY KEY (film_id, genre_id)
 );
 
-CREATE TABLE IF NOT EXISTS friendship (
-  user_id INTEGER REFERENCES users(id),
-  friend_id INTEGER REFERENCES users(id)
+CREATE TABLE IF NOT EXISTS friendships (
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  friend_id INT REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, friend_id),
+  CONSTRAINT fk_user_friend CHECK (user_id <> friend_id)
 );
 
 CREATE TABLE IF NOT EXISTS film_likes (
-  user_id INTEGER REFERENCES users(id),
-  film_id INTEGER REFERENCES films(id)
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  film_id INT REFERENCES films(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, film_id)
 );
 
 CREATE TABLE IF NOT EXISTS reviews (

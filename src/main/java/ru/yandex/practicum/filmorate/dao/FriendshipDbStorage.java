@@ -25,7 +25,7 @@ public class FriendshipDbStorage implements FriendshipStorage {
     @Override
     public void addFriend(Integer userId, Integer friendId) {
         String checkUserExists = "SELECT COUNT(*) FROM users WHERE id IN (?, ?)";
-        String insertQuery = "INSERT INTO friendship(user_id, friend_id) VALUES(?,?)";
+        String insertQuery = "INSERT INTO friendships(user_id, friend_id) VALUES(?,?)";
         try {
             Integer userCount = jdbc.queryForObject(checkUserExists, Integer.class, userId, friendId);
             if (userCount != 2) {
@@ -40,7 +40,7 @@ public class FriendshipDbStorage implements FriendshipStorage {
 
     @Override
     public void removeFriend(Integer userId, Integer friendId) {
-        String deleteFriend = "DELETE FROM friendship WHERE user_id = ? AND friend_id = ?";
+        String deleteFriend = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         String checkUser = "SELECT COUNT(*) FROM users WHERE id = ?";
         try {
             Integer userCount = jdbc.queryForObject(checkUser, Integer.class, userId);
@@ -63,7 +63,7 @@ public class FriendshipDbStorage implements FriendshipStorage {
 
         String getFriends = "SELECT u.* " +
                 "FROM users u " +
-                "JOIN friendship f ON u.id = f.friend_id " +
+                "JOIN friendships f ON u.id = f.friend_id " +
                 "WHERE f.user_id = ?";
         String checkUser = "SELECT COUNT(*) FROM users WHERE id = ?";
 
@@ -94,8 +94,8 @@ public class FriendshipDbStorage implements FriendshipStorage {
     @Override
     public List<User> getCommonFriends(Integer userId, Integer friendId) {
         String sql = "SELECT * FROM users " +
-                "JOIN friendship friend1 ON users.id = friend1.friend_id " +
-                "JOIN friendship friend2 ON users.id = friend2.friend_id " +
+                "JOIN friendships friend1 ON users.id = friend1.friend_id " +
+                "JOIN friendships friend2 ON users.id = friend2.friend_id " +
                 "WHERE friend1.user_id = ? AND friend2.user_id = ?";
         return jdbc.query(sql, userMapper, userId, friendId);
     }
