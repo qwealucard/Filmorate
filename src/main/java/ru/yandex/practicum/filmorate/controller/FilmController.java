@@ -59,7 +59,7 @@ public class FilmController {
     }
 
     @PutMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseStatus(HttpStatus.OK)
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("Received PUT request to add like for film ID: {} by user ID: {}", id, userId);
         filmLikeService.addLike(id, userId);
@@ -67,7 +67,7 @@ public class FilmController {
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseStatus(HttpStatus.OK)
     public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("Received DELETE request to remove like for film ID: {} by user ID: {}", id, userId);
         filmLikeService.removeLike(id, userId);

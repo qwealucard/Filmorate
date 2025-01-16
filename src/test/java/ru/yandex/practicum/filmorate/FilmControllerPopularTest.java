@@ -79,7 +79,7 @@ class FilmControllerPopularTest {
         for (int filmId = 1; filmId <= 20; filmId++) {
             int userId = filmId; // Соответствие ID пользователя и фильма
             mockMvc.perform(put(String.format("/films/%d/like/%d", filmId, userId)))
-                    .andExpect(status().isNoContent());
+                    .andExpect(status().isOk());
         }
     }
 

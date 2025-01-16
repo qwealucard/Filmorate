@@ -442,42 +442,46 @@ public class FilmDbStorage implements FilmStorage {
         return new ArrayList<>(set);
     }
 
-    private List<Film> getSearchBy(String query, String by) {
-        String sql = """
-            WITH res AS (
-                SELECT COUNT(user_id) AS likes, film_id
-                FROM film_likes
-                GROUP BY film_id
-            )
-            SELECT f.*, m.MPARating_id, m.MPA_Rating_name
-            FROM films f
-            LEFT JOIN film_directors fd ON f.id = fd.film_id
-            LEFT JOIN directors d ON d.id = fd.directors_id
-            LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id
-            LEFT JOIN res AS r ON r.film_id = f.id
-            WHERE (UPPER(d.name) LIKE ? AND ? LIKE '%director%')
-               OR (UPPER(f.name) LIKE ? AND ? LIKE '%title%')
-            ORDER BY r.likes DESC
-            """;
 
+    private List<Film> getSearchBy(String query, String by) {
+        // SQL-запрос для поиска фильмов и режиссеров
+        String sql = "WITH res AS (SELECT COUNT(user_id) AS likes, film_id FROM film_likes GROUP BY film_id) " +
+                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, " +
+                "COALESCE(r.likes, 0) AS likes FROM films f " +
+                "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
+                "LEFT JOIN directors d ON d.id = fd.directors_id " +
+                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
+                "LEFT JOIN res r ON r.film_id = f.id " +
+                "WHERE (UPPER(d.name) LIKE ? AND ? LIKE '%director%') " +
+                "OR (UPPER(f.name) LIKE ? AND ? LIKE '%title%') " +
+                "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, r.likes " +
+                "ORDER BY r.likes DESC, f.name ASC";
+        // Подготовка параметров для запроса
+        String upperQuery = "%" + query.toUpperCase() + "%";
+
+        // Выполнение запроса и обработка результатов
         return jdbc.query(sql, (rs, rowNum) -> {
+            // Создаем объект Film
             Film film = new Film(
                     rs.getInt("id"),
                     rs.getString("name"),
                     rs.getString("description"),
                     rs.getDate("release_date").toLocalDate(),
                     rs.getInt("duration"),
-                    new HashSet<>(),
-                    rs.getObject("mpa") != null ? new MPARating(
+                    new HashSet<>(), // Жанры будут заполнены позже
+                    rs.getObject("MPARating_id") != null ? new MPARating(
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new HashSet<>()
+                    new HashSet<>() // Режиссеры будут заполнены позже
             );
-            film.setDirectors(getDirectorByIdFilm(film.getId()));
+
+            // Добавляем жанры и режиссеров
             film.setGenres(getGenresByIdFilm(film.getId()));
+            film.setDirectors(getDirectorByIdFilm(film.getId()));
+
             return film;
-        }, "%" + query.toUpperCase() + "%", by, "%" + query.toUpperCase() + "%", by);
+        }, upperQuery, by, upperQuery, by);
     }
 
     private Set<Director> getDirectorByIdFilm(Integer idFilm) {
