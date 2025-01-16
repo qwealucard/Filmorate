@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.dao.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
@@ -31,20 +32,34 @@ public class UserDbStorage implements UserStorage {
         String sql = "INSERT INTO users (name, email, login, birthday) VALUES (?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
+        log.info("Starting user creation process for user: {}", user);
+
+        // Проверка имени: если пустое, подставляем логин
+        String name = (user.getName() == null || user.getName().isBlank()) ? user.getLogin() : user.getName();
+        user.setName(name); // Обновляем имя в объекте user
+
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+
             ps.setString(1, user.getName());
             ps.setString(2, user.getEmail());
             ps.setString(3, user.getLogin());
             ps.setDate(4, Date.valueOf(user.getBirthday()));
+
+            log.debug("Prepared statement parameters: name='{}', email='{}', login='{}', birthday='{}'",
+                    user.getName(), user.getEmail(), user.getLogin(), user.getBirthday());
             return ps;
         }, keyHolder);
 
-
         if (keyHolder.getKey() != null) {
-            user.setId(keyHolder.getKey().intValue());
+            int generatedId = keyHolder.getKey().intValue();
+            user.setId(generatedId);
+            log.info("User created successfully with ID: {}", generatedId);
+        } else {
+            log.warn("Failed to retrieve generated ID for user: {}", user);
         }
 
+        log.info("User creation process completed: {}", user);
         return user;
     }
 
@@ -74,17 +89,7 @@ public class UserDbStorage implements UserStorage {
     public Optional<User> getUserById(Integer id) {
         String sql = "SELECT id, name, email, login, birthday FROM users WHERE id = ?";
         try {
-            User user = jdbc.queryForObject(sql, (rs, rowNum) -> {
-                User user1 = new User(
-                        rs.getInt("id"),
-                        rs.getString("email"),
-                        rs.getString("login"),
-                        rs.getString("name"),
-                        rs.getDate("birthday").toLocalDate(),
-                        new HashSet<>()
-                );
-                return user1;
-            }, id);
+            User user = jdbc.queryForObject(sql, new UserRowMapper(), id);
             return Optional.of(user);
         } catch (DataAccessException e) {
             log.error("Ошибка при поиске пользователя с id:" + id + ": " + e.getMessage());

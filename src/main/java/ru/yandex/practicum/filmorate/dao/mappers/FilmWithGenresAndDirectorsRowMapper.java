@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.dao.mappers;
 
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.RowMapper;
-//import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
@@ -12,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component("filmWithGenresAndDirectorsRowMapper")
@@ -52,17 +51,17 @@ public class FilmWithGenresAndDirectorsRowMapper implements RowMapper<Film> {
         Object[] genresArray = (Object[]) resultSet.getArray("genres").getArray();
         log.debug("Raw Genres Array: {}", Arrays.toString(genresArray));
 
-        List<Genre> genres = Arrays.stream(genresArray)
+        Set<Genre> genres = Arrays.stream(genresArray)
                 .map(genre -> {
                     String[] parts = genre.toString().split(":");
                     log.debug("Parsed Genre: ID = {}, Name = {}", parts[0], parts[1]);
                     return new Genre(Integer.parseInt(parts[0]), parts[1]);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
         film.setGenres(genres);
         log.debug("Genres: {}", genres);
 
-//        // Directors
+        // Directors
 //        log.debug("Processing directors...");
 //        Object[] directorsArray = (Object[]) resultSet.getArray("directors").getArray();
 //        log.debug("Raw Directors Array: {}", Arrays.toString(directorsArray));
@@ -76,7 +75,7 @@ public class FilmWithGenresAndDirectorsRowMapper implements RowMapper<Film> {
 //                .collect(Collectors.toList());
 //        film.setDirectors(directors);
 //        log.debug("Directors: {}", directors);
-
+//
         log.debug("Mapped Film: {}", film);
         return film;
     }

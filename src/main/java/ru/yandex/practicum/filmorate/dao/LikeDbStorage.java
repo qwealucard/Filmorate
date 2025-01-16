@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.storage.LikeStorage;
 
 import java.util.List;
@@ -43,9 +44,11 @@ public class LikeDbStorage implements LikeStorage {
     @Override
     public void removeLike(Integer filmId, Integer userId) {
         if (!isLikeAlreadyAdded(filmId, userId)) {
-            return;
+            log.warn("Attempt to remove non-existing like for film ID {} and user ID {}", filmId, userId);
+            throw new NotFoundException("Like from user ID " + userId + " for film ID " + filmId + " not found.");
         }
-        log.info("Удаляем лайк для фильма с id " + filmId + " от пользователя с id " + userId);
+
+        log.info("Removing like for film ID {} from user ID {}", filmId, userId);
         String sql = "DELETE FROM film_likes WHERE user_id = ? AND film_id = ?";
         jdbc.update(sql, userId, filmId);
     }

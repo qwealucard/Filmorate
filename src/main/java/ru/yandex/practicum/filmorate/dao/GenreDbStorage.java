@@ -72,7 +72,7 @@ public class GenreDbStorage implements GenreStorage {
 
     @Override
     public List<Genre> findAll() {
-        String sql = "SELECT genre_id, genre_name FROM genres";
+        String sql = "SELECT genre_id, genre_name FROM genres ORDER BY genre_id ASC";
         return jdbc.query(sql, (rs, rowNum) -> new Genre(
                 rs.getInt("genre_id"),
                 rs.getString("genre_name")
