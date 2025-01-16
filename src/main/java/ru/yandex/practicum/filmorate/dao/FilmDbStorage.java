@@ -19,6 +19,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import java.util.stream.Collectors;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -76,9 +77,12 @@ public class FilmDbStorage implements FilmStorage {
         }
         String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa = ? WHERE id = ?";
         try {
+            // Проверка рейтинга MPA
             if (film.getMpa() != null) {
                 validateMpaRating(film.getMpa());
             }
+
+            // Обновление основных данных фильма
             jdbc.update(sql,
                     film.getName(),
                     film.getDescription(),
@@ -86,9 +90,28 @@ public class FilmDbStorage implements FilmStorage {
                     film.getDuration(),
                     film.getMpa() != null ? film.getMpa().getId() : null,
                     film.getId());
+
+            // Обновляем объект MPA в фильме
             if (film.getMpa() != null) {
                 film.setMpa(getMpaRatingById(film.getMpa().getId()));
             }
+
+            // Удаляем существующие жанры для фильма
+            clearGenresFromFilm(film.getId());
+
+            // Сортируем жанры по ID перед добавлением
+            if (film.getGenres() != null) {
+                log.info("Сортировка жанров для фильма ID {}", film.getId());
+                Set<Genre> sortedGenres = film.getGenres()
+                        .stream()
+                        .sorted(Comparator.comparingInt(Genre::getId))
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
+                film.setGenres(sortedGenres);
+            }
+
+            // Добавляем новые жанры
+            addGenreToFilm(film);
+            // Обновляем режиссеров
             if (film.getDirectors() != null) {
                 addDirectorToFilm(film);
             }
@@ -96,30 +119,71 @@ public class FilmDbStorage implements FilmStorage {
             return film;
         } catch (RuntimeException e) {
             log.error("Ошибка при обновлении фильма " + film.getId() + ": " + e.getMessage());
-            throw new UpdateFilmsException("Ошибка при обновлении фильма");
+            throw e;
         }
     }
 
-    public Collection<Film> findAll() {
-        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name " +
-                "FROM films f LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id";
+    // Метод для очистки жанров у фильма
+    private void clearGenresFromFilm(Integer filmId) {
+        String sql = "DELETE FROM film_genres WHERE film_id = ?";
+        jdbc.update(sql, filmId);
+        log.info("Жанры для фильма с id {} успешно удалены", filmId);
+    }
 
-        List<Film> films = jdbc.query(sql, (rs, rowNum) -> new Film(
-                rs.getInt("id"),
-                rs.getString("name"),
-                rs.getString("description"),
-                rs.getDate("release_date").toLocalDate(),
-                rs.getInt("duration"),
-                new ArrayList<>(),
-                rs.getObject("MPARating_id") != null ? new MPARating(
-                        rs.getInt("MPARating_id"),
-                        rs.getString("MPA_Rating_name")
-                ) : null,
-                new ArrayList<>()
-        ));
-        Map<Integer, List<Genre>> allFilmGenres = getAllFilmGenres();
-        films.forEach(film -> film.setGenres(allFilmGenres.getOrDefault(film.getId(), List.of())));
+    public Collection<Film> findAll() {
+        // SQL-запрос для выборки базовых данных о фильмах
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, f.mpa, m.MPARating_id, m.MPA_Rating_name FROM films f LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id";
+
+        // Загружаем все фильмы
+        List<Film> films = jdbc.query(sql, (rs, rowNum) -> {
+            Integer mpaId = rs.getObject("MPARating_id", Integer.class);
+            String mpaName = rs.getString("MPA_Rating_name");
+
+            // Создаем объект MPARating только если данные не null
+            MPARating mpaRating = mpaId != null ? new MPARating(mpaId, mpaName) : null;
+
+            // Создаем объект Film
+            return new Film(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("description"),
+                    rs.getDate("release_date").toLocalDate(),
+                    rs.getInt("duration"),
+                    new HashSet<>(),  // Жанры будут заполнены позже
+                    mpaRating,
+                    new HashSet<>()
+            );
+        });
+
+        // Получаем все жанры для фильмов
+        Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
+        Map<Integer, HashSet<Director>> allFilmDirectors = getAllFilmDirectors();
+
+        // Заполняем жанры и режиссеров для каждого фильма
+        films.forEach(film -> {
+            film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirectors(allFilmDirectors.getOrDefault(film.getId(), new HashSet<>()));
+        });
         return films;
+    }
+
+    // Метод для получения всех режиссеров
+    private Map<Integer, HashSet<Director>> getAllFilmDirectors() {
+        String sql = " SELECT fd.film_id, d.id, d.name FROM film_directors fd JOIN directors d ON fd.directors_id = d.id ";
+        Map<Integer, HashSet<Director>> allFilmDirectors = new HashMap<>();
+
+        jdbc.query(sql, (rs, rowNum) -> {
+            Integer filmId = rs.getInt("film_id");
+            Director director = new Director(
+                    rs.getInt("id"),
+                    rs.getString("name")
+            );
+
+            allFilmDirectors.computeIfAbsent(filmId, k -> new HashSet<>()).add(director);
+            return null;
+        });
+
+        return allFilmDirectors;
     }
 
     private void validateMpaRating(MPARating mpaRating) {
@@ -148,45 +212,73 @@ public class FilmDbStorage implements FilmStorage {
 
     private void addGenreToFilm(Film film) {
         String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
+
+        // Если у фильма нет жанров, выходим из метода
         if (film.getGenres() == null || film.getGenres().isEmpty()) {
+            log.warn("Фильм с ID {} не содержит жанров для добавления.", film.getId());
             return;
         }
-        List<Genre> genres = film.getGenres();
-        List<Genre> genresToAdd = new ArrayList<>();
-        for (Genre genre : genres) {
-            genreIsNotNull(genre);
-            if (!isGenreAlreadyAdded(film.getId(), genre.getId())) {
-                genresToAdd.add(genre);
-            }
-        }
+
+        // Уникальный набор жанров фильма, отсортированный по ID от меньшего к большему
+        List<Genre> sortedGenres = film.getGenres().stream()
+                .filter(genre -> {
+                    genreIsNotNull(genre); // Проверяем существование жанра
+                    return !isGenreAlreadyAdded(film.getId(), genre.getId()); // Фильтруем уже добавленные жанры
+                })
+                //.sorted(Comparator.comparingInt(Genre::getId)) // Сортируем жанры по ID в порядке возрастания
+                .toList();
+
+        log.info("Список жанров для добавления (отсортирован): {}", sortedGenres);
+
+        // Выполняем пакетную вставку
         jdbc.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
-                Genre genre = genres.get(i);
+                Genre genre = sortedGenres.get(i);
                 ps.setInt(1, film.getId());
                 ps.setInt(2, genre.getId());
-                log.info("жанр добавлен");
+                log.info("Добавление жанра с ID {} к фильму с ID {}", genre.getId(), film.getId());
             }
 
             @Override
             public int getBatchSize() {
-                return genres.size();
+                return sortedGenres.size();
             }
         });
+
+        log.info("Добавление жанров завершено для фильма с ID {}", film.getId());
     }
 
     private void addDirectorToFilm(Film film) {
-        try {
-            String sql = "merge into film_directors (film_id, directors_id) values (?, ?)";
-
-            film.getDirectors().forEach(
-                    director -> jdbc.update(
-                            sql,
-                            film.getId(), director.getId())
-            );
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Ошибка при добавлении режиссеров к фильму: " + e);
+        if (film.getDirectors() == null || film.getDirectors().isEmpty()) {
+            log.warn("Список режиссеров для фильма с ID {} пустой или равен null", film.getId());
+            return;
         }
+
+        String sql = "INSERT INTO film_directors (film_id, directors_id) VALUES (?, ?)";
+        List<Director> validDirectors = film.getDirectors().stream()
+                .filter(director -> director.getId() != null)
+                .collect(Collectors.toList());
+
+        if (validDirectors.isEmpty()) {
+            log.warn("Фильм с ID {} содержит только недействительные или пустые режиссеры", film.getId());
+            return;
+        }
+
+        jdbc.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Director director = validDirectors.get(i);
+                ps.setInt(1, film.getId());
+                ps.setInt(2, director.getId());
+                log.info("Добавление режиссера с ID {} к фильму с ID {}", director.getId(), film.getId());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return validDirectors.size();
+            }
+        });
     }
 
     private boolean filmExists(Integer id) {
@@ -208,22 +300,22 @@ public class FilmDbStorage implements FilmStorage {
                         rs.getString("description"),
                         rs.getDate("release_date").toLocalDate(),
                         rs.getInt("duration"),
-                        new ArrayList<>(),
+                        new HashSet<>(),
                         new MPARating(
                                 rs.getInt("MPARating_id"),
                                 rs.getString("MPA_Rating_name")
                         ),
-                        new ArrayList<>()
+                        new HashSet<>()
                 );
             }, id);
-            List<Genre> genres = getFilmGenresById(film.getId());
+            HashSet<Genre> genres = getFilmGenresById(film.getId());
             if (genres != null) {
                 film.setGenres(genres);
                 log.info("жанр добавлен");
             } else {
-                film.setGenres(new ArrayList<>());
+                film.setGenres(new HashSet<>());
             }
-            List<Director> directors = getFilmDirectorsById(film.getId());
+            Set<Director> directors = getFilmDirectorsById(film.getId());
             if (!directors.isEmpty()) {
                 film.setDirectors(directors);
             }
@@ -234,19 +326,26 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private List<Genre> getFilmGenresById(Integer filmId) {
+    private   HashSet<Genre> getFilmGenresById(Integer filmId) {
         String sql = "SELECT g.genre_id, g.genre_name FROM film_genres AS fg LEFT JOIN genres AS g ON fg.genre_id = g.genre_id WHERE film_id = ?";
         List<Genre> genresList = jdbc.query(sql, (rs, rowNum) -> new Genre(
                 rs.getInt("genre_id"),
                 rs.getString("genre_name")
         ), filmId);
-        Set<Genre> uniqueGenres = new HashSet<>(genresList);
-        return new ArrayList<>(uniqueGenres);
+        HashSet<Genre> uniqueGenres = new HashSet<>(genresList);
+        return uniqueGenres;
     }
 
-    private List<Director> getFilmDirectorsById(Integer filmId) {
-        String sql = "SELECT d.id, d.name FROM directors d JOIN film_directors fd on d.id = fd.directors_id WHERE fd.film_id = ?";
-        return jdbc.query(sql, new DirectorRowMapper(), filmId);
+    private Set<Director> getFilmDirectorsById(Integer filmId) {
+        String sql = """
+            SELECT d.id, d.name
+            FROM directors d
+            INNER JOIN film_directors fd ON d.id = fd.directors_id
+            WHERE fd.film_id = ?
+            """;
+
+        // Выполняем запрос и преобразуем результат в Set для устранения дубликатов
+        return new HashSet<>(jdbc.query(sql, new DirectorRowMapper(), filmId));
     }
 
     private boolean isGenreAlreadyAdded(Integer filmId, Integer genreId) {
@@ -268,45 +367,59 @@ public class FilmDbStorage implements FilmStorage {
                     rs.getString("description"),
                     rs.getDate("release_date").toLocalDate(),
                     rs.getInt("duration"),
-                    new ArrayList<>(),
+                    new HashSet<>(),
                     rs.getObject("mpa") != null ? new MPARating(
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
             addGenreToFilm(film);
             return film;
         }, count);
     }
 
-    private Map<Integer, List<Genre>> getAllFilmGenres() {
+    private Map<Integer, HashSet<Genre>> getAllFilmGenres() {
         String sql = "SELECT fg.film_id, g.genre_id, g.genre_name FROM film_genres fg JOIN genres g ON fg.genre_id = g.genre_id";
-        Map<Integer, List<Genre>> allFilmGenres = new HashMap<>();
+        Map<Integer, HashSet<Genre>> allFilmGenres = new HashMap<>();
+
         jdbc.query(sql, (rs, rowNum) -> {
             Integer filmId = rs.getInt("film_id");
             Genre genre = new Genre(rs.getInt("genre_id"), rs.getString("genre_name"));
-            allFilmGenres.computeIfAbsent(filmId, k -> new ArrayList<>()).add(genre);
+
+            // Используем HashSet для уникальности жанров
+            allFilmGenres.computeIfAbsent(filmId, k -> new HashSet<>()).add(genre);
             return null;
         });
+
         return allFilmGenres;
     }
 
     @Override
     public List<Film> getDirectorSort(Integer directorId, String sortBy) {
-
-        List<Film> films = new ArrayList<>();
-        if (sortBy.equals("year")) {
-            films.addAll(getFilmSortYear(directorId));
+        // Определяем метод сортировки
+        List<Film> films;
+        if ("year".equalsIgnoreCase(sortBy)) {
+            films = getFilmSortYear(directorId);
         } else {
-            films.addAll(getFilmSortLike(directorId));
+            films = getFilmSortLike(directorId);
         }
-        films.forEach(f -> {
-            List<Director> directors = getFilmDirectorsById(f.getId());
-            if (!directors.isEmpty()) {
-                f.setDirectors(directors);
+
+        // Получаем все жанры и режиссеров для фильмов
+        Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
+        Map<Integer, HashSet<Director>> allFilmDirectors = getAllFilmDirectors();
+
+        // Заполняем жанры, режиссеров и проверяем наличие MPA для каждого фильма
+        films.forEach(film -> {
+            film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>()));
+            film.setDirectors(allFilmDirectors.getOrDefault(film.getId(), new HashSet<>()));
+
+            // Если MPA отсутствует, загружаем его вручную
+            if (film.getMpa() == null) {
+                film.setMpa(getMpaRatingById(film.getId()));
             }
         });
+
         return films;
     }
 
@@ -340,12 +453,12 @@ public class FilmDbStorage implements FilmStorage {
                     rs.getString("description"),
                     rs.getDate("release_date").toLocalDate(),
                     rs.getInt("duration"),
-                    new ArrayList<>(),
+                    new HashSet<>(),
                     rs.getObject("mpa") != null ? new MPARating(
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
             film.setDirectors(getDirectorByIdFilm(film.getId()));
             film.setGenres(getGenresByIdFilm(film.getId()));
@@ -353,14 +466,33 @@ public class FilmDbStorage implements FilmStorage {
         }, by, query.toUpperCase(), query.toUpperCase());
     }
 
-    private List<Director> getDirectorByIdFilm(Integer idFilm) {
-        String sql = "SELECT d.* FROM directors d JOIN film_directors fd ON fd.directors_id = d.id WHERE fd.film_id = ?";
-        return jdbc.query(sql, new DirectorRowMapper(), idFilm);
+    private Set<Director> getDirectorByIdFilm(Integer idFilm) {
+        // SQL-запрос для получения списка режиссеров, связанных с фильмом
+        String sql = " SELECT d.id, d.name FROM directors d INNER JOIN film_directors fd ON fd.directors_id = d.id WHERE fd.film_id = ?";
+
+        // Логируем информацию о начале выполнения метода
+        log.debug("Получение списка режиссеров для фильма с ID {}", idFilm);
+
+        // Выполняем запрос и возвращаем результат
+        try {
+            // Преобразуем результат в Set для устранения дублирования
+            Set<Director> directors = new HashSet<>(jdbc.query(sql, new DirectorRowMapper(), idFilm));
+
+            // Логируем полученный результат
+            log.debug("Найдено {} уникальных режиссеров для фильма с ID {}", directors.size(), idFilm);
+
+            return directors;
+        } catch (DataAccessException e) {
+            // Логируем ошибку, если запрос завершился неудачно
+            log.error("Ошибка при получении режиссеров для фильма с ID {}: {}", idFilm, e.getMessage());
+            return Collections.emptySet(); // Возвращаем пустой Set в случае ошибки
+        }
     }
 
-    private List<Genre> getGenresByIdFilm(Integer idFilm) {
+    private HashSet<Genre> getGenresByIdFilm(Integer idFilm) {
         String sql = "SELECT g.* FROM genres g JOIN film_genres fg ON fg.genre_id = g.genre_id WHERE fg.film_id = ?";
-        return jdbc.query(sql, new GenreRowMapper(), idFilm);
+        List<Genre> genresList = jdbc.query(sql, new GenreRowMapper(), idFilm);
+        return new HashSet<>(genresList);
     }
 
     private List<Film> getFilmSortYear(Integer directorId) {
@@ -371,9 +503,9 @@ public class FilmDbStorage implements FilmStorage {
                 rs.getString("description"),
                 rs.getDate("release_date").toLocalDate(),
                 rs.getInt("duration"),
-                new ArrayList<>(),
+                new HashSet<>(),
                 null,
-                new ArrayList<>()
+                new HashSet<>()
         ), directorId);
     }
 
@@ -388,9 +520,9 @@ public class FilmDbStorage implements FilmStorage {
                 rs.getString("description"),
                 rs.getDate("release_date").toLocalDate(),
                 rs.getInt("duration"),
-                new ArrayList<>(),
+                new HashSet<>(),
                 null,
-                new ArrayList<>()
+                new HashSet<>()
         ), directorId);
         return films;
     }
@@ -474,15 +606,15 @@ public class FilmDbStorage implements FilmStorage {
                     rs.getString("description"),
                     rs.getDate("release_date").toLocalDate(),
                     rs.getInt("duration"),
-                    new ArrayList<>(),
+                    new HashSet<>(),
                     rs.getObject("mpa") != null ? new MPARating(
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new ArrayList<>()
+                    new HashSet<>()
             );
 
-            List<Genre> genres = getFilmGenresById(film.getId());
+            HashSet<Genre> genres = getFilmGenresById(film.getId());
             if (!genres.isEmpty()) {
                 film.setGenres(genres);
             }

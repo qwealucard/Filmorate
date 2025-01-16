@@ -82,15 +82,6 @@ public class FilmController {
         return film;
     }
 
-//    @GetMapping("/popular")
-//    @ResponseStatus(HttpStatus.OK)
-//    public List<Film> getPopularFilms(@RequestParam int count) {
-//        log.info("Received GET request to fetch top {} popular films", count);
-//        List<Film> popularFilms = filmLikeService.getTopFilms(count);
-//        log.info("Returning {} popular films", popularFilms.size());
-//        return popularFilms;
-//    }
-
     @GetMapping("/director/{directorId}")
     @ResponseStatus(HttpStatus.OK)
     public List<Film> getDirectorSort(@PathVariable Integer directorId, @RequestParam @NonNull String sortBy) {
@@ -116,14 +107,14 @@ public class FilmController {
             @RequestParam(value = "genreId", required = false) Integer genreId,
             @RequestParam(value = "year", required = false) Integer year) {
 
-        log.info("Received GET request to fetch top {} popular films with genreId: {} and year: {}", count, genreId, year);
-
-        // Проверка значения count
-        if (count <= 0) {
-            log.error("Invalid 'count' parameter: {}", count);
-            throw new IllegalArgumentException("Parameter 'count' must be greater than 0.");
+        if (genreId == null && year == null) {
+            log.info("Received GET request to fetch top {} popular films", count);
+            List<Film> popularFilms = filmLikeService.getTopFilms(count);
+            log.info("Returning {} popular films", popularFilms.size());
+            return popularFilms;
         }
 
+        log.info("Received GET request to fetch top {} popular films with genreId: {} and year: {}", count, genreId, year);
         List<Film> popularFilms = filmService.getPopularFilms(count, genreId, year);
         log.info("Returning {} popular films with genreId: {} and year: {}", popularFilms.size(), genreId, year);
         return popularFilms;
