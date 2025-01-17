@@ -4,11 +4,13 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
+import ru.yandex.practicum.filmorate.dao.ReviewStorage;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
-import ru.yandex.practicum.filmorate.dao.ReviewStorage;
+import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -16,9 +18,11 @@ import java.util.List;
 public class ReviewService {
 
     private final ReviewStorage reviewStorage;
+    private final UserFeedEventService userFeedEventService;
 
-    public ReviewService(ReviewStorage reviewStorage) {
+    public ReviewService(ReviewStorage reviewStorage, UserFeedEventService userFeedEventService) {
         this.reviewStorage = reviewStorage;
+        this.userFeedEventService = userFeedEventService;
     }
 
     public Review addReview(@Valid @RequestBody Review review) {
@@ -26,6 +30,9 @@ public class ReviewService {
         validateReview(review);
         Review addedReview = reviewStorage.addReview(review);
         log.info("Review added successfully: {}", addedReview);
+
+        addUserEvent(review.getUserId(), "REVIEW", "ADD", review.getFilmId());
+
         return addedReview;
     }
 
@@ -38,6 +45,9 @@ public class ReviewService {
         validateReview(review);
         Review updatedReview = reviewStorage.updateReview(review);
         log.info("Review updated successfully: {}", updatedReview);
+
+        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", review.getFilmId());
+
         return updatedReview;
     }
 
@@ -47,8 +57,14 @@ public class ReviewService {
             log.error("Review with ID {} not found.", reviewId);
             throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
         }
+
+        int userId = getReviewById(reviewId).getUserId();
+        int filmId = getReviewById(reviewId).getFilmId();
+
         reviewStorage.deleteReview(reviewId);
         log.info("Review with ID {} deleted successfully.", reviewId);
+
+        addUserEvent(userId, "REVIEW", "REMOVE", filmId);
     }
 
     public Review getReviewById(Integer reviewId) {
@@ -81,6 +97,8 @@ public class ReviewService {
         }
         reviewStorage.addLike(reviewId, userId);
         log.info("Like added to review ID: {} by user ID: {}", reviewId, userId);
+
+        addUserEvent(userId, "LIKE", "ADD", reviewId);
     }
 
     public void addDislike(Integer reviewId, Integer userId) {
@@ -89,6 +107,12 @@ public class ReviewService {
             log.error("Review with ID {} not found.", reviewId);
             throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
         }
+
+        Boolean isLike = reviewStorage.isLiked(reviewId, userId);
+        if (isLike) {
+            addUserEvent(userId, "LIKE", "REMOVE", reviewId);
+        }
+
         reviewStorage.addDislike(reviewId, userId);
         log.info("Dislike added to review ID: {} by user ID: {}", reviewId, userId);
     }
@@ -101,6 +125,8 @@ public class ReviewService {
         }
         reviewStorage.removeLike(reviewId, userId);
         log.info("Like removed from review ID: {} by user ID: {}", reviewId, userId);
+
+        addUserEvent(userId, "LIKE", "REMOVE", reviewId);
     }
 
     public void removeDislike(Integer reviewId, Integer userId) {
@@ -131,5 +157,19 @@ public class ReviewService {
             log.error("Validation failed: Review isPositive value is invalid.");
             throw new ValidationException("Review must have a valid isPositive value (true or false).");
         }
+    }
+
+    private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
+        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
+        UserFeedEvent event = new UserFeedEvent(
+                0, // eventId будет сгенерирован базой данных
+                userId,
+                eventType,
+                operation,
+                entityId,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addUserEvent(event);
+        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
     }
 }

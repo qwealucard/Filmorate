@@ -1,8 +1,10 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserStorage {
@@ -16,4 +18,8 @@ public interface UserStorage {
     void deleteUserById(Integer id);
 
     Optional<User> getUserById(Integer id);
+
+//    List<UserFeedEvent> getUserFeed(int id);
+//
+//    void addUserEvent(UserFeedEvent event);
 }

@@ -3,10 +3,16 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.UserFeedEventDbStorage;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.*;
+import ru.yandex.practicum.filmorate.model.UserFeedEvent;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
+import ru.yandex.practicum.filmorate.storage.LikeStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.time.Instant;
 import java.util.*;
 
 @Slf4j
@@ -16,18 +22,23 @@ public class UserService {
     private final UserStorage userStorage;
     private final FriendshipStorage friendshipStorage;
     private final LikeStorage likeStorage;
+    private final UserFeedEventDbStorage userFeedEventStorage;
 
     public UserService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                        @Qualifier("userDbStorage") UserStorage userStorage,
-                       @Qualifier("FriendshipDbStorage") FriendshipStorage friendshipStorage, LikeStorage likeStorage) {
+                       @Qualifier("FriendshipDbStorage") FriendshipStorage friendshipStorage, LikeStorage likeStorage,
+                       UserFeedEventDbStorage userFeedEventStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.friendshipStorage = friendshipStorage;
         this.likeStorage = likeStorage;
+        this.userFeedEventStorage = userFeedEventStorage;
     }
 
     public void addFriend(Integer userId, Integer friendId) {
         friendshipStorage.addFriend(userId, friendId);
+
+        addUserEvent(userId, "FRIEND", "ADD", friendId);
     }
 
     public void deleteFriend(Integer userId, Integer friendId) {
@@ -36,6 +47,23 @@ public class UserService {
         friendshipStorage.removeFriend(userId, friendId);
         log.info("Друг удален из списка друзей пользователя");
         log.info("Пользователь удален из списка друзей друга");
+
+        addUserEvent(userId, "FRIEND", "REMOVE", friendId);
+    }
+
+    private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
+        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
+
+        UserFeedEvent event = new UserFeedEvent(
+                0, // eventId будет сгенерирован базой данных
+                userId,
+                eventType,
+                operation,
+                entityId,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventStorage.addUserEvent(event);
+        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
     }
 
     public List<User> checkFriends(Integer userId) {
