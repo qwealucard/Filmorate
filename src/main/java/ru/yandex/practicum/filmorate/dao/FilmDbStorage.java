@@ -111,8 +111,10 @@ public class FilmDbStorage implements FilmStorage {
             // Добавляем новые жанры
             addGenreToFilm(film);
             // Обновляем режиссеров
-            if (film.getDirectors() != null) {
+            if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
                 addDirectorToFilm(film);
+            } else {
+                clearDirectorsByIdFilm(film.getId());
             }
 
             return film;
@@ -120,6 +122,13 @@ public class FilmDbStorage implements FilmStorage {
             log.error("Ошибка при обновлении фильма " + film.getId() + ": " + e.getMessage());
             throw e;
         }
+    }
+
+    // Метод для очистки режиссеров у фильма
+    private void clearDirectorsByIdFilm(Integer filmId) {
+        String sql = "DELETE FROM film_directors WHERE film_id = ?";
+        jdbc.update(sql, filmId);
+        log.info("Режиссеры для фильма с id {} успешно удалены", filmId);
     }
 
     // Метод для очистки жанров у фильма
@@ -210,6 +219,19 @@ public class FilmDbStorage implements FilmStorage {
             ), id);
         } catch (EmptyResultDataAccessException e) {
             log.warn("MPA Rating с id {} не найден", id);
+            return null; // Или выбросить свое исключение, если отсутствие значения критично
+        }
+    }
+
+    private MPARating getMpaRatingByIdFilm(Integer id) {
+        String sql = "SELECT MPARating_id, MPA_Rating_name FROM MPA_Ratings m join films f on f.mpa = m.MPARating_id WHERE f.id = ?";
+        try {
+            return jdbc.queryForObject(sql, (rs, rowNum) -> new MPARating(
+                    rs.getInt("MPARating_id"),
+                    rs.getString("MPA_Rating_name")
+            ), id);
+        } catch (EmptyResultDataAccessException e) {
+            log.warn("MPA Rating  для id фильма {} не найден", id);
             return null; // Или выбросить свое исключение, если отсутствие значения критично
         }
     }
@@ -408,6 +430,9 @@ public class FilmDbStorage implements FilmStorage {
         } else {
             films = getFilmSortLike(directorId);
         }
+        if(films.isEmpty()) {
+            throw new NotFoundException("There are no items to sort.");
+        }
 
         // Получаем все жанры и режиссеров для фильмов
         Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
@@ -420,7 +445,7 @@ public class FilmDbStorage implements FilmStorage {
 
             // Если MPA отсутствует, загружаем его вручную
             if (film.getMpa() == null) {
-                film.setMpa(getMpaRatingById(film.getId()));
+                film.setMpa(getMpaRatingByIdFilm(film.getId()));
             }
         });
 
