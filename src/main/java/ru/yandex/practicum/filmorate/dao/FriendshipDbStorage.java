@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Repository
@@ -55,6 +56,14 @@ public class FriendshipDbStorage implements FriendshipStorage {
         } catch (RuntimeException e) {
             throw new UpdateUsersException("Ошибка при удалении друга " + e.getMessage());
         }
+    }
+
+    public boolean isFriend(Integer userId, Integer friendId) {
+//        String sql = "SELECT friend_id FROM friendships WHERE user_id = ?";
+        String sql = "SELECT COUNT(*) FROM friendships WHERE user_id = ? AND friend_id = ?";
+        Integer count = jdbc.queryForObject(sql, Integer.class, userId, friendId);
+        return count > 0;
+//        return Objects.equals(friendIdFact, friendId);
     }
 
     @Override

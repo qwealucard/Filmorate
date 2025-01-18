@@ -108,7 +108,7 @@ public class ReviewService {
             throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
         }
 
-        Boolean isLike = reviewStorage.isLiked(reviewId, userId);
+        boolean isLike = reviewStorage.isLiked(reviewId, userId);
         if (isLike) {
             addUserEvent(userId, "LIKE", "REMOVE", reviewId);
         }

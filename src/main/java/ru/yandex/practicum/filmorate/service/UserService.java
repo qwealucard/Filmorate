@@ -13,7 +13,9 @@ import ru.yandex.practicum.filmorate.storage.LikeStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -44,11 +46,13 @@ public class UserService {
     public void deleteFriend(Integer userId, Integer friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        friendshipStorage.removeFriend(userId, friendId);
-        log.info("Друг удален из списка друзей пользователя");
-        log.info("Пользователь удален из списка друзей друга");
 
-        addUserEvent(userId, "FRIEND", "REMOVE", friendId);
+        if (friendshipStorage.isFriend(userId, friendId)) {
+            friendshipStorage.removeFriend(userId, friendId);
+            log.info("Друг удален из списка друзей пользователя");
+            log.info("Пользователь удален из списка друзей друга");
+            addUserEvent(userId, "FRIEND", "REMOVE", friendId);
+        }
     }
 
     private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {

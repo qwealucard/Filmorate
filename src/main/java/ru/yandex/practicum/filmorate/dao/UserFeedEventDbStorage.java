@@ -39,8 +39,13 @@ public class UserFeedEventDbStorage {
             return ps;
         }, keyHolder);
 
+        log.info("Добавление в БД события типа \"{}\", операция \"{}\", пользователь id = {}, сущность id = {}",
+                event.getEventType(), event.getOperation(), event.getUserId(), event.getEntityId());
+
         if (keyHolder.getKey() != null) {
             event.setEventId(keyHolder.getKey().intValue());
+            log.info("Событие типа \"{}\", операция \"{}\", пользователь id = {}, сущность id = {} внесено в БД с id = {}",
+                    event.getEventType(), event.getOperation(), event.getUserId(), event.getEntityId(), event.getEventId());
         }
     }
 }

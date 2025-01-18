@@ -12,4 +12,6 @@ public interface FriendshipStorage {
      List<User> getAllFriends(Integer id);
 
      List<User> getCommonFriends(Integer userId, Integer friendId);
+
+     public boolean isFriend(Integer userId, Integer friendId);
 }
