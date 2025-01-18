@@ -6,7 +6,6 @@ import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
 
 @Component
 public class UserFeedEventRowMapper implements RowMapper<UserFeedEvent> {
