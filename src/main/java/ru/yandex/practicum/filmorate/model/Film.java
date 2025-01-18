@@ -61,4 +61,16 @@ public class Film {
             inverseJoinColumns = @JoinColumn(name = "directors_id")
     )
     private Set<Director> directors = new HashSet<>();
+
+    private Integer likes;
+    public Film(Integer id, String name, String description, LocalDate releaseDate, Integer duration, Set<Genre> genres, MPARating mpa, Set<Director> directors) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.releaseDate = releaseDate;
+        this.duration = duration;
+        this.genres = genres;
+        this.mpa = mpa;
+        this.directors = directors;
+    }
 }
