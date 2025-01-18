@@ -63,6 +63,7 @@ public class Film {
     private Set<Director> directors = new HashSet<>();
 
     private Integer likes;
+
     public Film(Integer id, String name, String description, LocalDate releaseDate, Integer duration, Set<Genre> genres, MPARating mpa, Set<Director> directors) {
         this.id = id;
         this.name = name;
