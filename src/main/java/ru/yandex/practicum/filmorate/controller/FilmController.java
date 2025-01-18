@@ -59,7 +59,7 @@ public class FilmController {
     }
 
     @PutMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseStatus(HttpStatus.OK)
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("Received PUT request to add like for film ID: {} by user ID: {}", id, userId);
         filmLikeService.addLike(id, userId);
@@ -67,7 +67,7 @@ public class FilmController {
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @ResponseStatus(HttpStatus.OK)
     public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("Received DELETE request to remove like for film ID: {} by user ID: {}", id, userId);
         filmLikeService.removeLike(id, userId);
@@ -81,15 +81,6 @@ public class FilmController {
         log.info("Returning film: {}", film);
         return film;
     }
-
-//    @GetMapping("/popular")
-//    @ResponseStatus(HttpStatus.OK)
-//    public List<Film> getPopularFilms(@RequestParam int count) {
-//        log.info("Received GET request to fetch top {} popular films", count);
-//        List<Film> popularFilms = filmLikeService.getTopFilms(count);
-//        log.info("Returning {} popular films", popularFilms.size());
-//        return popularFilms;
-//    }
 
     @GetMapping("/director/{directorId}")
     @ResponseStatus(HttpStatus.OK)
@@ -116,14 +107,14 @@ public class FilmController {
             @RequestParam(value = "genreId", required = false) Integer genreId,
             @RequestParam(value = "year", required = false) Integer year) {
 
-        log.info("Received GET request to fetch top {} popular films with genreId: {} and year: {}", count, genreId, year);
-
-        // Проверка значения count
-        if (count <= 0) {
-            log.error("Invalid 'count' parameter: {}", count);
-            throw new IllegalArgumentException("Parameter 'count' must be greater than 0.");
+        if (genreId == null && year == null) {
+            log.info("Received GET request to fetch top {} popular films", count);
+            List<Film> popularFilms = filmLikeService.getTopFilms(count);
+            log.info("Returning {} popular films", popularFilms.size());
+            return popularFilms;
         }
 
+        log.info("Received GET request to fetch top {} popular films with genreId: {} and year: {}", count, genreId, year);
         List<Film> popularFilms = filmService.getPopularFilms(count, genreId, year);
         log.info("Returning {} popular films with genreId: {} and year: {}", popularFilms.size(), genreId, year);
         return popularFilms;

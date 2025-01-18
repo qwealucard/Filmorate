@@ -6,19 +6,16 @@ import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
 
 @Component
 public class UserRowMapper implements RowMapper<User> {
-    @Override
-    public User mapRow(ResultSet resultSet, int rowNum) throws SQLException {
-        return new User(
-                resultSet.getInt("id"),
-                resultSet.getString("name"),
-                resultSet.getString("email"),
-                resultSet.getString("login"),
-                resultSet.getDate("birthday").toLocalDate(),
-                new HashSet<>()
-        );
+    public User mapRow(ResultSet rs, int rowNum) throws SQLException {
+        User user = new User();
+        user.setId(rs.getInt("id"));
+        user.setEmail(rs.getString("email"));
+        user.setLogin(rs.getString("login"));
+        user.setName(rs.getString("name"));
+        user.setBirthday(rs.getDate("birthday").toLocalDate());
+        return user;
     }
 }

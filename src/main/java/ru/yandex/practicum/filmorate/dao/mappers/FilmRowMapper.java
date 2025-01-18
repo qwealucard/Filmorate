@@ -2,14 +2,17 @@ package ru.yandex.practicum.filmorate.dao.mappers;
 
 import org.springframework.jdbc.core.RowMapper;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
 import org.springframework.stereotype.Component;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
-@Component
+@Component("filmRowMapper")
 public class FilmRowMapper implements RowMapper<Film> {
 
     @Override
@@ -23,6 +26,20 @@ public class FilmRowMapper implements RowMapper<Film> {
             mpaRating = new MPARating(mpaRatingId, mpaRatingName);
         }
 
+        // Извлечение жанров (предполагается, что жанры возвращаются в формате "id:name,id:name")
+        String genresData = resultSet.getString("genres");
+        Set<Genre> genres = new HashSet<>();
+        if (genresData != null && !genresData.isBlank()) {
+            Arrays.stream(genresData.split(","))
+                    .map(genre -> genre.split(":"))
+                    .filter(parts -> parts.length == 2) // Убедиться, что формат корректный
+                    .forEach(parts -> {
+                        Integer genreId = Integer.parseInt(parts[0].trim());
+                        String genreName = parts[1].trim();
+                        genres.add(new Genre(genreId, genreName));
+                    });
+        }
+
         // Создание объекта Film
         return new Film(
                 resultSet.getInt("id"),                      // ID фильма
@@ -30,9 +47,9 @@ public class FilmRowMapper implements RowMapper<Film> {
                 resultSet.getString("description"),          // Описание фильма
                 resultSet.getDate("release_date").toLocalDate(), // Дата выхода
                 resultSet.getInt("duration"),                // Продолжительность
-                new ArrayList<>(),                           // Пустой список жанров (заполняется отдельно)
+                genres,                                      // Жанры
                 mpaRating,                                   // MPA рейтинг
-                new ArrayList<>()                            // Пустой список лайков (заполняется отдельно)
+                new HashSet<>()                            // Пустой список лайков (заполняется отдельно)
         );
     }
 }

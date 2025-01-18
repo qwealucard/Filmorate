@@ -67,11 +67,8 @@ public class UserService {
     }
 
     public List<User> checkFriends(Integer userId) {
-        Set<User> friendList = new HashSet<>();
-        for (Integer friendId : userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден")).getFriendList()) {
-            User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-            friendList.add(friend);
-        }
+        User user = userStorage.getUserById(userId)
+                .orElseThrow(() -> new NotFoundException("User with ID " + userId + " not found."));
         return friendshipStorage.getAllFriends(userId);
 
     }
