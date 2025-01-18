@@ -475,7 +475,6 @@ public class FilmDbStorage implements FilmStorage {
 
 
     private List<Film> getSearchBy(String query, String by) {
-
         String[] byArr = by.split(",");
         // SQL-запрос для поиска фильмов и режиссеров
         String sql = "WITH res AS (SELECT COUNT(user_id) likes, film_id FROM film_likes GROUP BY film_id)\n" +
