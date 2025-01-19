@@ -38,9 +38,13 @@ public class UserService {
     }
 
     public void addFriend(Integer userId, Integer friendId) {
-        friendshipStorage.addFriend(userId, friendId);
+        User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
+        User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        addUserEvent(userId, "FRIEND", "ADD", friendId);
+        if (!friendshipStorage.isFriend(userId, friendId)) {
+            friendshipStorage.addFriend(userId, friendId);
+            addUserEvent(userId, "FRIEND", "ADD", friendId);
+        }
     }
 
     public void deleteFriend(Integer userId, Integer friendId) {

@@ -62,7 +62,7 @@ public class FilmController {
     @ResponseStatus(HttpStatus.OK)
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("Received PUT request to add like for film ID: {} by user ID: {}", id, userId);
-        filmLikeService.addLike(id, userId);
+        filmLikeService.addLike(userId, id);
         log.info("Like added successfully for film ID: {} by user ID: {}", id, userId);
     }
 
@@ -70,7 +70,7 @@ public class FilmController {
     @ResponseStatus(HttpStatus.OK)
     public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("Received DELETE request to remove like for film ID: {} by user ID: {}", id, userId);
-        filmLikeService.removeLike(id, userId);
+        filmLikeService.removeLike(userId, id);
         log.info("Like removed successfully for film ID: {} by user ID: {}", id, userId);
     }
 

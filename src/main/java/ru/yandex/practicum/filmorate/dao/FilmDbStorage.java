@@ -12,19 +12,32 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
-import ru.yandex.practicum.filmorate.exceptions.*;
+import ru.yandex.practicum.filmorate.exceptions.GenreException;
+import ru.yandex.practicum.filmorate.exceptions.MPAException;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ReleaseDateException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.MPARating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import java.util.stream.Collectors;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Repository
@@ -111,8 +124,10 @@ public class FilmDbStorage implements FilmStorage {
             // Добавляем новые жанры
             addGenreToFilm(film);
             // Обновляем режиссеров
-            if (film.getDirectors() != null) {
+            if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
                 addDirectorToFilm(film);
+            } else {
+                clearDirectorsByIdFilm(film.getId());
             }
 
             return film;
@@ -120,6 +135,13 @@ public class FilmDbStorage implements FilmStorage {
             log.error("Ошибка при обновлении фильма " + film.getId() + ": " + e.getMessage());
             throw e;
         }
+    }
+
+    // Метод для очистки режиссеров у фильма
+    private void clearDirectorsByIdFilm(Integer filmId) {
+        String sql = "DELETE FROM film_directors WHERE film_id = ?";
+        jdbc.update(sql, filmId);
+        log.info("Режиссеры для фильма с id {} успешно удалены", filmId);
     }
 
     // Метод для очистки жанров у фильма
@@ -210,6 +232,19 @@ public class FilmDbStorage implements FilmStorage {
             ), id);
         } catch (EmptyResultDataAccessException e) {
             log.warn("MPA Rating с id {} не найден", id);
+            return null; // Или выбросить свое исключение, если отсутствие значения критично
+        }
+    }
+
+    private MPARating getMpaRatingByIdFilm(Integer id) {
+        String sql = "SELECT MPARating_id, MPA_Rating_name FROM MPA_Ratings m join films f on f.mpa = m.MPARating_id WHERE f.id = ?";
+        try {
+            return jdbc.queryForObject(sql, (rs, rowNum) -> new MPARating(
+                    rs.getInt("MPARating_id"),
+                    rs.getString("MPA_Rating_name")
+            ), id);
+        } catch (EmptyResultDataAccessException e) {
+            log.warn("MPA Rating  для id фильма {} не найден", id);
             return null; // Или выбросить свое исключение, если отсутствие значения критично
         }
     }
@@ -330,7 +365,7 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    private   HashSet<Genre> getFilmGenresById(Integer filmId) {
+    private HashSet<Genre> getFilmGenresById(Integer filmId) {
         String sql = "SELECT g.genre_id, g.genre_name FROM film_genres AS fg LEFT JOIN genres AS g ON fg.genre_id = g.genre_id WHERE film_id = ?";
         List<Genre> genresList = jdbc.query(sql, (rs, rowNum) -> new Genre(
                 rs.getInt("genre_id"),
@@ -342,11 +377,11 @@ public class FilmDbStorage implements FilmStorage {
 
     private Set<Director> getFilmDirectorsById(Integer filmId) {
         String sql = """
-            SELECT d.id, d.name
-            FROM directors d
-            INNER JOIN film_directors fd ON d.id = fd.directors_id
-            WHERE fd.film_id = ?
-            """;
+                SELECT d.id, d.name
+                FROM directors d
+                INNER JOIN film_directors fd ON d.id = fd.directors_id
+                WHERE fd.film_id = ?
+                """;
 
         // Выполняем запрос и преобразуем результат в Set для устранения дубликатов
         return new HashSet<>(jdbc.query(sql, new DirectorRowMapper(), filmId));
@@ -408,6 +443,9 @@ public class FilmDbStorage implements FilmStorage {
         } else {
             films = getFilmSortLike(directorId);
         }
+        if (films.isEmpty()) {
+            throw new NotFoundException("There are no items to sort.");
+        }
 
         // Получаем все жанры и режиссеров для фильмов
         Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
@@ -420,7 +458,7 @@ public class FilmDbStorage implements FilmStorage {
 
             // Если MPA отсутствует, загружаем его вручную
             if (film.getMpa() == null) {
-                film.setMpa(getMpaRatingById(film.getId()));
+                film.setMpa(getMpaRatingByIdFilm(film.getId()));
             }
         });
 
@@ -431,33 +469,22 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getSearch(String query, String by) {
 
         Set<Film> set = new HashSet<>();
-
-        if (by.contains("director")) {
-            set.addAll(getSearchBy("%" + query + "%", "director"));
-        }
-        if (by.contains("title")) {
-            set.addAll(getSearchBy("%" + query + "%", "title"));
-        }
-
+        set.addAll(getSearchBy("%" + query + "%", by));
         return new ArrayList<>(set);
     }
 
 
     private List<Film> getSearchBy(String query, String by) {
+        String[] byArr = by.split(",");
         // SQL-запрос для поиска фильмов и режиссеров
-        String sql = "WITH res AS (SELECT COUNT(user_id) AS likes, film_id FROM film_likes GROUP BY film_id) " +
-                "SELECT f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, " +
-                "COALESCE(r.likes, 0) AS likes FROM films f " +
-                "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
-                "LEFT JOIN directors d ON d.id = fd.directors_id " +
-                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
-                "LEFT JOIN res r ON r.film_id = f.id " +
-                "WHERE (UPPER(d.name) LIKE ? AND ? LIKE '%director%') " +
-                "OR (UPPER(f.name) LIKE ? AND ? LIKE '%title%') " +
-                "GROUP BY f.id, f.name, f.description, f.release_date, f.duration, m.MPARating_id, m.MPA_Rating_name, r.likes " +
-                "ORDER BY r.likes DESC, f.name ASC";
-        // Подготовка параметров для запроса
-        String upperQuery = "%" + query.toUpperCase() + "%";
+        String sql = "WITH res AS (SELECT COUNT(user_id) likes, film_id FROM film_likes GROUP BY film_id)\n" +
+                "SELECT f.*, m.MPARating_id, m.MPA_Rating_name, r.likes FROM films f\n" +
+                "LEFT JOIN film_directors fd ON f.id = fd.film_id \n" +
+                "LEFT JOIN directors d ON d.id = fd.directors_id \n" +
+                "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id \n" +
+                "LEFT JOIN res AS r ON r.film_id = f.id\n" +
+                "WHERE (CASE WHEN ? LIKE 'director' THEN UPPER(d.name) LIKE ? ELSE UPPER(f.name) LIKE ? END)\n" +
+                "or (CASE WHEN ? LIKE 'title' THEN UPPER(f.name) LIKE ? ELSE UPPER(d.name) LIKE ? END) ORDER BY r.likes desc";
 
         // Выполнение запроса и обработка результатов
         return jdbc.query(sql, (rs, rowNum) -> {
@@ -473,7 +500,8 @@ public class FilmDbStorage implements FilmStorage {
                             rs.getInt("MPARating_id"),
                             rs.getString("MPA_Rating_name")
                     ) : null,
-                    new HashSet<>() // Режиссеры будут заполнены позже
+                    new HashSet<>(), // Режиссеры будут заполнены позже
+                    rs.getInt("likes")
             );
 
             // Добавляем жанры и режиссеров
@@ -481,7 +509,8 @@ public class FilmDbStorage implements FilmStorage {
             film.setDirectors(getDirectorByIdFilm(film.getId()));
 
             return film;
-        }, upperQuery, by, upperQuery, by);
+        }, byArr[0], query.toUpperCase(), query.toUpperCase(), byArr.length == 2 ? byArr[1] : byArr[0], query.toUpperCase(), query.toUpperCase());
+
     }
 
     private Set<Director> getDirectorByIdFilm(Integer idFilm) {

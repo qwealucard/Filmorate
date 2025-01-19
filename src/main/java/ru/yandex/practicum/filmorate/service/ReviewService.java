@@ -31,7 +31,8 @@ public class ReviewService {
         Review addedReview = reviewStorage.addReview(review);
         log.info("Review added successfully: {}", addedReview);
 
-        addUserEvent(review.getUserId(), "REVIEW", "ADD", review.getFilmId());
+//        addUserEvent(review.getUserId(), "REVIEW", "ADD", review.getFilmId());
+        addUserEvent(review.getUserId(), "REVIEW", "ADD", addedReview.getReviewId());
 
         return addedReview;
     }
@@ -46,7 +47,8 @@ public class ReviewService {
         Review updatedReview = reviewStorage.updateReview(review);
         log.info("Review updated successfully: {}", updatedReview);
 
-        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", review.getFilmId());
+//        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", review.getFilmId());
+        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", updatedReview.getReviewId());
 
         return updatedReview;
     }
@@ -64,7 +66,8 @@ public class ReviewService {
         reviewStorage.deleteReview(reviewId);
         log.info("Review with ID {} deleted successfully.", reviewId);
 
-        addUserEvent(userId, "REVIEW", "REMOVE", filmId);
+//        addUserEvent(userId, "REVIEW", "REMOVE", filmId);
+        addUserEvent(userId, "REVIEW", "REMOVE", reviewId);
     }
 
     public Review getReviewById(Integer reviewId) {

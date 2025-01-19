@@ -28,15 +28,15 @@ public class FilmLikeService {
     }
 
     public void addLike(Integer userId, Integer filmId) {
-        likeStorage.addLike(userId, filmId);
+            likeStorage.addLike(userId, filmId);
 
-        addUserEvent(userId, "LIKE", "ADD", filmId);
+            addUserEvent(userId, "LIKE", "ADD", filmId);
     }
 
     public void removeLike(Integer userId, Integer filmId) {
-        likeStorage.removeLike(userId, filmId);
+            likeStorage.removeLike(userId, filmId);
 
-        addUserEvent(userId, "LIKE", "REMOVE", filmId);
+            addUserEvent(userId, "LIKE", "REMOVE", filmId);
     }
 
     private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {

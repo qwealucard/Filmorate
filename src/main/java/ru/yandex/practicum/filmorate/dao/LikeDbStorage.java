@@ -17,7 +17,8 @@ public class LikeDbStorage implements LikeStorage {
     private final JdbcTemplate jdbc;
 
     @Override
-    public void addLike(Integer filmId, Integer userId) {
+//    public void addLike(Integer filmId, Integer userId) {
+    public void addLike(Integer userId, Integer filmId) {
         if (!isFilmExists(filmId)) {
             throw new IllegalArgumentException("Фильма с id " + filmId + " не существует.");
         }
@@ -42,7 +43,8 @@ public class LikeDbStorage implements LikeStorage {
     }
 
     @Override
-    public void removeLike(Integer filmId, Integer userId) {
+//    public void removeLike(Integer filmId, Integer userId) {
+    public void removeLike(Integer userId, Integer filmId) {
         if (!isLikeAlreadyAdded(filmId, userId)) {
             log.warn("Attempt to remove non-existing like for film ID {} and user ID {}", filmId, userId);
             throw new NotFoundException("Like from user ID " + userId + " for film ID " + filmId + " not found.");
