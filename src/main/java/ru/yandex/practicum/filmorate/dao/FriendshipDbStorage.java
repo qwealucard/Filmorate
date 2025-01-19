@@ -12,7 +12,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FriendshipStorage;
 
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @Repository
