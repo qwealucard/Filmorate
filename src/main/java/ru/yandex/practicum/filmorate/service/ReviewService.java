@@ -18,11 +18,11 @@ import java.util.List;
 public class ReviewService {
 
     private final ReviewStorage reviewStorage;
-    private final UserFeedEventService userFeedEventService;
+//    private final UserFeedEventService userFeedEventService;
 
-    public ReviewService(ReviewStorage reviewStorage, UserFeedEventService userFeedEventService) {
+    public ReviewService(ReviewStorage reviewStorage/*, UserFeedEventService userFeedEventService*/) {
         this.reviewStorage = reviewStorage;
-        this.userFeedEventService = userFeedEventService;
+//        this.userFeedEventService = userFeedEventService;
     }
 
     public Review addReview(@Valid @RequestBody Review review) {
@@ -32,7 +32,7 @@ public class ReviewService {
         log.info("Review added successfully: {}", addedReview);
 
 //        addUserEvent(review.getUserId(), "REVIEW", "ADD", review.getFilmId());
-        addUserEvent(review.getUserId(), "REVIEW", "ADD", addedReview.getReviewId());
+//        addUserEvent(review.getUserId(), "REVIEW", "ADD", addedReview.getReviewId());
 
         return addedReview;
     }
@@ -48,26 +48,26 @@ public class ReviewService {
         log.info("Review updated successfully: {}", updatedReview);
 
 //        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", review.getFilmId());
-        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", updatedReview.getReviewId());
+//        addUserEvent(review.getUserId(), "REVIEW", "UPDATE", updatedReview.getReviewId());
 
         return updatedReview;
     }
 
     public void deleteReview(Integer reviewId) {
         log.info("Deleting review with ID: {}", reviewId);
-        if (!reviewStorage.existsById(reviewId)) {
-            log.error("Review with ID {} not found.", reviewId);
-            throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
-        }
+//        if (!reviewStorage.existsById(reviewId)) {
+//            log.error("Review with ID {} not found.", reviewId);
+//            throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
+//        }
 
-        int userId = getReviewById(reviewId).getUserId();
-        int filmId = getReviewById(reviewId).getFilmId();
+//        int userId = getReviewById(reviewId).getUserId();
+//        int filmId = getReviewById(reviewId).getFilmId();
 
         reviewStorage.deleteReview(reviewId);
         log.info("Review with ID {} deleted successfully.", reviewId);
 
 //        addUserEvent(userId, "REVIEW", "REMOVE", filmId);
-        addUserEvent(userId, "REVIEW", "REMOVE", reviewId);
+//        addUserEvent(userId, "REVIEW", "REMOVE", reviewId);
     }
 
     public Review getReviewById(Integer reviewId) {
@@ -101,7 +101,7 @@ public class ReviewService {
         reviewStorage.addLike(reviewId, userId);
         log.info("Like added to review ID: {} by user ID: {}", reviewId, userId);
 
-        addUserEvent(userId, "LIKE", "ADD", reviewId);
+//        addUserEvent(userId, "LIKE", "ADD", reviewId);
     }
 
     public void addDislike(Integer reviewId, Integer userId) {
@@ -110,9 +110,8 @@ public class ReviewService {
             log.error("Review with ID {} not found.", reviewId);
             throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
         }
-
         reviewStorage.addDislike(reviewId, userId);
-        addUserEvent(userId, "LIKE", "REMOVE", reviewId);
+//        addUserEvent(userId, "LIKE", "REMOVE", reviewId);
         log.info("Dislike added to review ID: {} by user ID: {}", reviewId, userId);
     }
 
@@ -125,7 +124,7 @@ public class ReviewService {
         reviewStorage.removeLike(reviewId, userId);
         log.info("Like removed from review ID: {} by user ID: {}", reviewId, userId);
 
-        addUserEvent(userId, "LIKE", "REMOVE", reviewId);
+//        addUserEvent(userId, "LIKE", "REMOVE", reviewId);
     }
 
     public void removeDislike(Integer reviewId, Integer userId) {
@@ -158,17 +157,17 @@ public class ReviewService {
         }
     }
 
-    private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
-        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
-        UserFeedEvent event = new UserFeedEvent(
-                0, // eventId будет сгенерирован базой данных
-                userId,
-                eventType,
-                operation,
-                entityId,
-                Instant.now().toEpochMilli()
-        );
-        userFeedEventService.addUserEvent(event);
-        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
-    }
+//    private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
+//        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
+//        UserFeedEvent event = new UserFeedEvent(
+//                0, // eventId будет сгенерирован базой данных
+//                userId,
+//                eventType,
+//                operation,
+//                entityId,
+//                Instant.now().toEpochMilli()
+//        );
+//        userFeedEventService.addUserEvent(event);
+//        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
+//    }
 }

@@ -263,7 +263,7 @@ public class FilmDbStorage implements FilmStorage {
                 .filter(genre -> {
                     genreIsNotNull(genre); // Проверяем существование жанра
                     return !isGenreAlreadyAdded(film.getId(), genre.getId()); // Фильтруем уже добавленные жанры
-                })
+                }).sorted(Comparator.comparingInt(Genre::getId))
                 //.sorted(Comparator.comparingInt(Genre::getId)) // Сортируем жанры по ID в порядке возрастания
                 .toList();
 

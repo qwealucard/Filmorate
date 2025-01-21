@@ -8,4 +8,6 @@ public interface LikeStorage {
     void removeLike(Integer userId, Integer filmId);
 
     List<Integer> getLikedFilmIds(Integer userId);
+
+//    boolean isLikeAlreadyAdded(Integer filmId, Integer userId);
 }

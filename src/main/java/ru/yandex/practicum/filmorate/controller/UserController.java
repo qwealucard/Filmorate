@@ -47,12 +47,14 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     public void addFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
         userService.addFriend(id, friendId);
+        userFeedEventService.addUserEvent(id, "FRIEND", "ADD", friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
     @ResponseStatus(HttpStatus.OK)
     public void removeFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
         userService.deleteFriend(id, friendId);
+        userFeedEventService.addUserEvent(id, "FRIEND", "REMOVE", friendId);
     }
 
     @GetMapping("/{id}/friends")
