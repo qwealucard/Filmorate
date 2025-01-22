@@ -57,6 +57,14 @@ public class FriendshipDbStorage implements FriendshipStorage {
         }
     }
 
+    public boolean isFriend(Integer userId, Integer friendId) {
+//        String sql = "SELECT friend_id FROM friendships WHERE user_id = ?";
+        String sql = "SELECT COUNT(*) FROM friendships WHERE user_id = ? AND friend_id = ?";
+        Integer count = jdbc.queryForObject(sql, Integer.class, userId, friendId);
+        return count > 0;
+//        return Objects.equals(friendIdFact, friendId);
+    }
+
     @Override
     public List<User> getAllFriends(Integer id) {
         log.info("Request to fetch all friends for user with id: {}", id);

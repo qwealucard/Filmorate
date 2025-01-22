@@ -147,6 +147,11 @@
             return count != null && count > 0;
         }
 
+        public boolean isLiked(Integer reviewId, Integer userId) {
+            String sql = "SELECT is_like FROM review_likes WHERE review_id = ? AND user_id = ?";
+            return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, reviewId, userId));
+        }
+
         private void validateReview(Review review) {
             if (review.getContent() == null || review.getContent().isBlank()) {
                 throw new ValidationException("Review content cannot be null or blank.");

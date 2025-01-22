@@ -2,9 +2,11 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
+import ru.yandex.practicum.filmorate.service.UserFeedEventService;
 
 import java.util.List;
 
@@ -15,23 +17,32 @@ import java.util.List;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final UserFeedEventService userFeedEventService;
 
     @PostMapping
     public Review addReview(@RequestBody Review review) {
         log.info("POST /reviews - Adding review: {}", review);
-        return reviewService.addReview(review);
+        Review review1 = reviewService.addReview(review);
+        userFeedEventService.addUserEvent(review1.getUserId(), "REVIEW", "ADD", review1.getReviewId());
+        return review1;
     }
 
     @PutMapping
     public Review updateReview(@RequestBody Review review) {
         log.info("PUT /reviews - Updating review: {}", review);
-        return reviewService.updateReview(review);
+        Review review1 = reviewService.updateReview(review);
+        //todo
+        userFeedEventService.addUserEvent(review1.getUserId(), "REVIEW", "UPDATE", review.getReviewId());
+        return review1;
     }
 
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public void deleteReview(@PathVariable Integer id) {
         log.info("DELETE /reviews/{} - Deleting review", id);
+        int userId = reviewService.getReviewById(id).getUserId();
         reviewService.deleteReview(id);
+        userFeedEventService.addUserEvent(userId, "REVIEW", "REMOVE", id);
     }
 
     @GetMapping("/{id}")

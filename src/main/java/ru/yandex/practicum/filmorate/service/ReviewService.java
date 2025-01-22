@@ -4,11 +4,10 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
+import ru.yandex.practicum.filmorate.dao.ReviewStorage;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Review;
-import ru.yandex.practicum.filmorate.dao.ReviewStorage;
-
 import java.util.List;
 
 @Slf4j
@@ -26,6 +25,7 @@ public class ReviewService {
         validateReview(review);
         Review addedReview = reviewStorage.addReview(review);
         log.info("Review added successfully: {}", addedReview);
+
         return addedReview;
     }
 
@@ -43,10 +43,7 @@ public class ReviewService {
 
     public void deleteReview(Integer reviewId) {
         log.info("Deleting review with ID: {}", reviewId);
-        if (!reviewStorage.existsById(reviewId)) {
-            log.error("Review with ID {} not found.", reviewId);
-            throw new EntityNotFoundException("Review with ID " + reviewId + " not found.");
-        }
+
         reviewStorage.deleteReview(reviewId);
         log.info("Review with ID {} deleted successfully.", reviewId);
     }
@@ -81,6 +78,7 @@ public class ReviewService {
         }
         reviewStorage.addLike(reviewId, userId);
         log.info("Like added to review ID: {} by user ID: {}", reviewId, userId);
+
     }
 
     public void addDislike(Integer reviewId, Integer userId) {

@@ -263,12 +263,12 @@ public class FilmDbStorage implements FilmStorage {
                 .filter(genre -> {
                     genreIsNotNull(genre); // Проверяем существование жанра
                     return !isGenreAlreadyAdded(film.getId(), genre.getId()); // Фильтруем уже добавленные жанры
-                })
-                //.sorted(Comparator.comparingInt(Genre::getId)) // Сортируем жанры по ID в порядке возрастания
+                }).sorted(Comparator.comparingInt(Genre::getId))
+                .sorted(Comparator.comparingInt(Genre::getId)) // Сортируем жанры по ID в порядке возрастания
                 .toList();
 
         log.info("Список жанров для добавления (отсортирован): {}", sortedGenres);
-
+        film.setGenres(new LinkedHashSet<>(sortedGenres));
         // Выполняем пакетную вставку
         jdbc.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
@@ -399,7 +399,7 @@ public class FilmDbStorage implements FilmStorage {
                 "FROM films f LEFT JOIN film_likes l ON f.id = l.film_id " +
                 "LEFT JOIN MPA_Ratings m ON f.mpa = m.MPARating_id " +
                 "GROUP BY f.id ORDER BY likesCount DESC, f.id DESC LIMIT ?";
-        return jdbc.query(sql, (rs, rowNum) -> {
+        List<Film> films = jdbc.query(sql, (rs, rowNum) -> {
             Film film = new Film(
                     rs.getInt("id"),
                     rs.getString("name"),
@@ -413,9 +413,21 @@ public class FilmDbStorage implements FilmStorage {
                     ) : null,
                     new HashSet<>()
             );
-            addGenreToFilm(film);
+
+
+
+           // addGenreToFilm(film);
             return film;
         }, count);
+        Map<Integer, HashSet<Genre>> allFilmGenres = getAllFilmGenres();
+        // Map<Integer, HashSet<Director>> allFilmDirectors = getAllFilmDirectors();
+
+        // Заполняем жанры и директоров для каждого фильма
+        films.forEach(film -> {
+            film.setGenres(allFilmGenres.getOrDefault(film.getId(), new HashSet<>()));
+           // film.setDirectors(allFilmDirectors.getOrDefault(film.getId(), new HashSet<>()));
+        });
+        return films;
     }
 
     private Map<Integer, HashSet<Genre>> getAllFilmGenres() {
