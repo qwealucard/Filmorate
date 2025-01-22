@@ -40,39 +40,17 @@ public class UserService {
     public void addFriend(Integer userId, Integer friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-
-//        if (!friendshipStorage.isFriend(userId, friendId)) {
-            friendshipStorage.addFriend(userId, friendId);
-//            addUserEvent(userId, "FRIEND", "ADD", friendId);
-//        }
+        friendshipStorage.addFriend(userId, friendId);
     }
 
     public void deleteFriend(Integer userId, Integer friendId) {
         User user = userStorage.getUserById(userId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
         User friend = userStorage.getUserById(friendId).orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-
-//        if (friendshipStorage.isFriend(userId, friendId)) {
-            friendshipStorage.removeFriend(userId, friendId);
-            log.info("Друг удален из списка друзей пользователя");
-            log.info("Пользователь удален из списка друзей друга");
-//            addUserEvent(userId, "FRIEND", "REMOVE", friendId);
-//        }
+        friendshipStorage.removeFriend(userId, friendId);
+        log.info("Друг удален из списка друзей пользователя");
+        log.info("Пользователь удален из списка друзей друга");
     }
 
-//    private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
-//        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
-//
-//        UserFeedEvent event = new UserFeedEvent(
-//                0, // eventId будет сгенерирован базой данных
-//                userId,
-//                eventType,
-//                operation,
-//                entityId,
-//                Instant.now().toEpochMilli()
-//        );
-//        userFeedEventStorage.addUserEvent(event);
-//        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
-//    }
 
     public List<User> checkFriends(Integer userId) {
         User user = userStorage.getUserById(userId)

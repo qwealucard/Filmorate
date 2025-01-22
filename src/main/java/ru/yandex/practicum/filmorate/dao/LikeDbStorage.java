@@ -48,7 +48,6 @@ public class LikeDbStorage implements LikeStorage {
     }
 
     @Override
-//    public void removeLike(Integer filmId, Integer userId) {
     public void removeLike(Integer userId, Integer filmId) {
         if (!isFilmExists(filmId)) {
             throw new IllegalArgumentException("Фильма с id " + filmId + " не существует.");

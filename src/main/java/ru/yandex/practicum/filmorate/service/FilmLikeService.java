@@ -18,54 +18,20 @@ public class FilmLikeService {
 
     private final FilmStorage filmStorage;
     private final LikeStorage likeStorage;
-//    private final UserFeedEventService userFeedEventService;
 
-    public FilmLikeService(@Qualifier("filmDbStorage") FilmStorage filmStorage, LikeStorage likeStorage/*,*/
-                           /*UserFeedEventService userFeedEventService*/) {
+    public FilmLikeService(@Qualifier("filmDbStorage") FilmStorage filmStorage, LikeStorage likeStorage) {
         this.filmStorage = filmStorage;
         this.likeStorage = likeStorage;
-//        this.userFeedEventService = userFeedEventService;
+
     }
 
     public void addLike(Integer userId, Integer filmId) {
-        //todo
-//        if (likeStorage.isLikeAlreadyAdded(filmId, userId)) {
-//            return;
-//        }
         likeStorage.addLike(userId, filmId);
-//        if (likeStorage.isLikeAlreadyAdded(filmId, userId)) {
-//            return;
-//        }
-//        addUserEvent(userId, "LIKE", "ADD", filmId);
-    }
+   }
 
     public void removeLike(Integer userId, Integer filmId) {
-        //todo
-//        if (!likeStorage.isLikeAlreadyAdded(filmId, userId)) {
-//            return;
-//        }
             likeStorage.removeLike(userId, filmId);
-
-//        if (likeStorage.isLikeAlreadyAdded(filmId, userId)) {
-//            addUserEvent(userId, "LIKE", "REMOVE", filmId);
-//        }
-//            addUserEvent(userId, "LIKE", "REMOVE", filmId);
     }
-
-//    private void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
-//        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
-//
-//        UserFeedEvent event = new UserFeedEvent(
-//                0, // eventId будет сгенерирован базой данных
-//                userId,
-//                eventType,
-//                operation,
-//                entityId,
-//                Instant.now().toEpochMilli()
-//        );
-//        userFeedEventService.addUserEvent(event);
-//        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
-//    }
 
     public List<Film> getTopFilms(int count) {
         try {

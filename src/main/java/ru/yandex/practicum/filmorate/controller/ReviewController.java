@@ -62,7 +62,6 @@ public class ReviewController {
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("PUT /reviews/{}/like/{} - Adding like", id, userId);
         reviewService.addLike(id, userId);
-        userFeedEventService.addUserEvent(userId, "LIKE", "ADD", id);
     }
 
     @PutMapping("/{id}/dislike/{userId}")
@@ -75,7 +74,6 @@ public class ReviewController {
     public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
         log.info("DELETE /reviews/{}/like/{} - Removing like", id, userId);
         reviewService.removeLike(id, userId);
-        userFeedEventService.addUserEvent(userId, "LIKE", "REMOVE", id);
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
