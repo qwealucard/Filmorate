@@ -118,6 +118,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(DirectorsException.class)
+    public ResponseEntity<ErrorResponse> handleDirectorsException(Exception e) {
+        log.error("Ошибка при взаимодействии с базой данных ");
+        return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     @Getter
     static class ErrorResponse {
         private final String error;

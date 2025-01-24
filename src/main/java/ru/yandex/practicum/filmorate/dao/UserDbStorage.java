@@ -131,7 +131,7 @@ public class UserDbStorage implements UserStorage {
             if (rowsAffected == 0) {
                 throw new NotFoundException("Пользователь с id " + id + " не найден");
             }
-        }  catch (RuntimeException e) {
+        }  catch (DataAccessException e) {
             throw new RuntimeException("Ошибка при удалении пользователя " + id + ": " + e.getMessage(), e);
         }
     }

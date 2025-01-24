@@ -12,10 +12,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
 import ru.yandex.practicum.filmorate.dao.mappers.GenreRowMapper;
-import ru.yandex.practicum.filmorate.exceptions.GenreException;
-import ru.yandex.practicum.filmorate.exceptions.MPAException;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ReleaseDateException;
+import ru.yandex.practicum.filmorate.exceptions.*;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -131,7 +128,7 @@ public class FilmDbStorage implements FilmStorage {
             }
 
             return film;
-        } catch (RuntimeException e) {
+        } catch (UpdateFilmsException e) {
             log.error("Ошибка при обновлении фильма " + film.getId() + ": " + e.getMessage());
             throw e;
         }

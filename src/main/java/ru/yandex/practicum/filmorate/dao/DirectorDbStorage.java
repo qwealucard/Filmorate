@@ -8,6 +8,8 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dao.mappers.DirectorRowMapper;
+import ru.yandex.practicum.filmorate.exceptions.DirectorsException;
+import ru.yandex.practicum.filmorate.exceptions.DuplicateException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.storage.DirectorStorage;
@@ -49,7 +51,7 @@ public class DirectorDbStorage implements DirectorStorage {
             if (!idDirectors.isEmpty()) {
                 director.setId(idDirectors.get(0));
                 log.debug("Режиссер с именем " + director.getName() + " уже существует с ID: {}", director.getId());
-                return director;
+                throw new DuplicateException("Ошибка с дублированием director");
             }
 
             String sqlQuery = "INSERT INTO directors (name) VALUES (?)";
@@ -62,10 +64,9 @@ public class DirectorDbStorage implements DirectorStorage {
             }, keyHolder);
             director.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
 
-        } catch (RuntimeException e) {
-            throw new RuntimeException("ошибка сохранения режиссера " + e);
+        } catch (DirectorsException e) {
+            throw new DirectorsException("ошибка сохранения режиссера " + e);
         }
-
         log.debug("Режиссер успешно создан");
         return director;
     }
@@ -80,8 +81,8 @@ public class DirectorDbStorage implements DirectorStorage {
 
             log.debug("Режиссер успешно изменен");
             return director;
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Ошибка при изменении режиссера: " + e);
+        } catch (DirectorsException e) {
+            throw new DirectorsException("Ошибка при изменении режиссера: " + e);
         }
     }
 
@@ -94,8 +95,8 @@ public class DirectorDbStorage implements DirectorStorage {
                     id);
 
             log.debug("Режиссер успешно удален");
-        } catch (RuntimeException e) {
-            throw new RuntimeException("Ошибка при удалении режиссера: " + e);
+        } catch (DirectorsException e) {
+            throw new DirectorsException("Ошибка при удалении режиссера: " + e);
         }
     }
 }
