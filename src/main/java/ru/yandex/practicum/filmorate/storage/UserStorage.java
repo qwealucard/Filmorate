@@ -13,5 +13,7 @@ public interface UserStorage {
 
     Collection<User> findAll();
 
+    void deleteUserById(Integer id);
+
     Optional<User> getUserById(Integer id);
 }
