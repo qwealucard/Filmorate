@@ -6,8 +6,6 @@ import ru.yandex.practicum.filmorate.dao.UserFeedEventDbStorage;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-
-import java.time.Instant;
 import java.util.List;
 
 @Slf4j
