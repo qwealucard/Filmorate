@@ -37,7 +37,7 @@ public class DirectorDbStorage implements DirectorStorage {
         try {
             return jdbcTemplate.queryForObject(sqlQuery, new DirectorRowMapper(), id);
         } catch (EmptyResultDataAccessException e) {
-            throw new NotFoundException("Режиссер по ид : " + id + " не найден. Ошибка: " + e);
+            throw new NotFoundException("Режиссер по ид : " + id + " не найден. Ошибка:" + e);
         }
     }
 
