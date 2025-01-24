@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 import ru.yandex.practicum.filmorate.service.FilmDirectorsService;
 import ru.yandex.practicum.filmorate.service.FilmLikeService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserFeedEventService;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 
@@ -66,7 +68,15 @@ public class FilmController {
         log.info("Received PUT request to add like for film ID: {} by user ID: {}", id, userId);
         filmLikeService.addLike(userId, id);
         log.info("Like added successfully for film ID: {} by user ID: {}", id, userId);
-        userFeedEventService.addUserEvent(userId, "LIKE", "ADD", id);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                userId,
+                "LIKE",
+                "ADD",
+                id,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
     }
 
     @DeleteMapping("/{id}/like/{userId}")
@@ -75,7 +85,15 @@ public class FilmController {
         log.info("Received DELETE request to remove like for film ID: {} by user ID: {}", id, userId);
         filmLikeService.removeLike(userId, id);
         log.info("Like removed successfully for film ID: {} by user ID: {}", id, userId);
-        userFeedEventService.addUserEvent(userId, "LIKE", "REMOVE", id);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                userId,
+                "LIKE",
+                "REMOVE",
+                id,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
     }
 
     @GetMapping("/{id}")

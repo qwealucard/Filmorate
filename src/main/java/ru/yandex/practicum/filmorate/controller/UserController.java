@@ -13,6 +13,7 @@ import ru.yandex.practicum.filmorate.service.FilmRecommendationService;
 import ru.yandex.practicum.filmorate.service.UserFeedEventService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -47,14 +48,30 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     public void addFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
         userService.addFriend(id, friendId);
-        userFeedEventService.addUserEvent(id, "FRIEND", "ADD", friendId);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                id,
+                "FRIEND",
+                "ADD",
+                friendId,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
     @ResponseStatus(HttpStatus.OK)
     public void removeFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
         userService.deleteFriend(id, friendId);
-        userFeedEventService.addUserEvent(id, "FRIEND", "REMOVE", friendId);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                id,
+                "FRIEND",
+                "REMOVE",
+                friendId,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
     }
 
     @GetMapping("/{id}/friends")

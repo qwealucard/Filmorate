@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exceptions.DuplicateException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.storage.LikeStorage;
 
@@ -28,7 +29,7 @@ public class LikeDbStorage implements LikeStorage {
         }
         if (isLikeAlreadyAdded(filmId, userId)) {
             log.warn("Attempt to add existing like for film ID {} and user ID {}", filmId, userId);
-            throw new NotFoundException("Like from user ID " + userId + " for film ID " + filmId + " is existing.");
+            throw new DuplicateException("Like from user ID " + userId + " for film ID " + filmId + " is existing.");
         }
 
         String sql = "INSERT INTO film_likes (user_id, film_id) VALUES (?, ?)";

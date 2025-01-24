@@ -111,6 +111,8 @@ public class ReviewService {
         log.info("Dislike removed from review ID: {} by user ID: {}", reviewId, userId);
     }
 
+
+
     private void validateReview(@Valid @RequestBody Review review) {
         log.info("Validating review: {}", review);
         if (review.getContent() == null || review.getContent().isBlank()) {
@@ -130,4 +132,5 @@ public class ReviewService {
             throw new ValidationException("Review must have a valid isPositive value (true or false).");
         }
     }
+
 }

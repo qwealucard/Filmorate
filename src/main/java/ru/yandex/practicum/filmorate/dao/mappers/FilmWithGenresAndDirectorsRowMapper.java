@@ -25,31 +25,18 @@ public class FilmWithGenresAndDirectorsRowMapper implements RowMapper<Film> {
         // Создаем объект Film
         Film film = new Film();
         film.setId(resultSet.getInt("id"));
-        log.debug("Film ID: {}", film.getId());
-
         film.setName(resultSet.getString("name"));
-        log.debug("Film Name: {}", film.getName());
-
         film.setDescription(resultSet.getString("description"));
-        log.debug("Film Description: {}", film.getDescription());
-
         film.setReleaseDate(resultSet.getDate("release_date").toLocalDate());
-        log.debug("Film Release Date: {}", film.getReleaseDate());
-
         film.setDuration(resultSet.getInt("duration"));
-        log.debug("Film Duration: {}", film.getDuration());
 
         // MPA
         film.setMpa(new MPARating(
                 resultSet.getInt("MPARating_id"),
                 resultSet.getString("mpa_name")
         ));
-        log.debug("MPA: {}", film.getMpa());
-
         // Genres
-        log.debug("Processing genres...");
         Object[] genresArray = (Object[]) resultSet.getArray("genres").getArray();
-        log.debug("Raw Genres Array: {}", Arrays.toString(genresArray));
 
         Set<Genre> genres = Arrays.stream(genresArray)
                 .map(genre -> {
@@ -60,22 +47,6 @@ public class FilmWithGenresAndDirectorsRowMapper implements RowMapper<Film> {
                 .collect(Collectors.toSet());
         film.setGenres(genres);
         log.debug("Genres: {}", genres);
-
-        // Directors
-//        log.debug("Processing directors...");
-//        Object[] directorsArray = (Object[]) resultSet.getArray("directors").getArray();
-//        log.debug("Raw Directors Array: {}", Arrays.toString(directorsArray));
-//
-//        List<Director> directors = Arrays.stream(directorsArray)
-//                .map(director -> {
-//                    String[] parts = director.toString().split(":");
-//                    log.debug("Parsed Director: ID = {}, Name = {}", parts[0], parts[1]);
-//                    return new Director(Integer.parseInt(parts[0]), parts[1]);
-//                })
-//                .collect(Collectors.toList());
-//        film.setDirectors(directors);
-//        log.debug("Directors: {}", directors);
-//
         log.debug("Mapped Film: {}", film);
         return film;
     }
