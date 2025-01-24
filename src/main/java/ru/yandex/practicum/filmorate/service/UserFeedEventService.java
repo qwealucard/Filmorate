@@ -6,8 +6,6 @@ import ru.yandex.practicum.filmorate.dao.UserFeedEventDbStorage;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-
-import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -35,7 +33,7 @@ public class UserFeedEventService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с id = " + id + " не найден"));
     }
 
-    private void addEvent(UserFeedEvent event) {
+    public void addEvent(UserFeedEvent event) {
         log.info("Добавление события типа \"{}\" для операции \"{}\" для пользователя id = {} в БД",
                 event.getEventType(), event.getOperation(), event.getUserId());
 
@@ -44,20 +42,6 @@ public class UserFeedEventService {
                 event.getEventType(), event.getOperation(), event.getUserId());
     }
 
-    public void addUserEvent(Integer userId, String eventType, String operation, Integer entityId) {
-        log.info("Создание события типа \"{}\" для операции \"{}\", для пользователя с id = {}", eventType, operation, userId);
-
-        UserFeedEvent event = new UserFeedEvent(
-                0, // eventId будет сгенерирован базой данных
-                userId,
-                eventType,
-                operation,
-                entityId,
-                Instant.now().toEpochMilli()
-        );
-        addEvent(event);
-        log.info("Событие типа \"{}\" для операции \"{}\" для пользователя с id = {} внесено в БД", eventType, operation, userId);
-    }
 
 }
 

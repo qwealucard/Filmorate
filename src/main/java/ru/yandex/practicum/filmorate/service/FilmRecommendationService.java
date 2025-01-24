@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.*;
+import ru.yandex.practicum.filmorate.exceptions.*;
+
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,11 +42,9 @@ public class FilmRecommendationService {
     }
 
     public List<Film> getRecommendations(Integer userId) {
-        Optional<User> userOptional = userStorage.getUserById(userId);
-        if (!userOptional.isPresent()) {
-            return Collections.emptyList();
-        }
-        User user = userOptional.get();
+        User user = userStorage.getUserById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User with ID " + userId + " not found"));
+
         Map<User, Set<Film>> data = loadData();
         return getRecommendationsForUser(user, data);
     }

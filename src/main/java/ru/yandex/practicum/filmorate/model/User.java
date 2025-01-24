@@ -17,7 +17,6 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @Table(name = "users")
-@Entity
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,5 +40,18 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "friend_id")
     )
     private Set<User> friends = new HashSet<>();
+
+    // Сеттер для имени с проверкой
+    public void setName(String name) {
+        this.name = (name == null || name.isBlank()) ? this.login : name;
+    }
+
+    // Сеттер для логина: при его изменении обновляем имя, если оно пустое
+    public void setLogin(String login) {
+        this.login = login;
+        if (this.name == null || this.name.isBlank()) {
+            this.name = login;
+        }
+    }
 
 }

@@ -5,9 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.model.UserFeedEvent;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 import ru.yandex.practicum.filmorate.service.UserFeedEventService;
 
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -22,18 +24,33 @@ public class ReviewController {
     @PostMapping
     public Review addReview(@RequestBody Review review) {
         log.info("POST /reviews - Adding review: {}", review);
-        Review review1 = reviewService.addReview(review);
-        userFeedEventService.addUserEvent(review1.getUserId(), "REVIEW", "ADD", review1.getReviewId());
-        return review1;
+        Review savedReview = reviewService.addReview(review);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                savedReview.getUserId(),
+                "REVIEW",
+                "ADD",
+                review.getReviewId(),
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
+        return savedReview;
     }
 
     @PutMapping
     public Review updateReview(@RequestBody Review review) {
         log.info("PUT /reviews - Updating review: {}", review);
-        Review review1 = reviewService.updateReview(review);
-        //todo
-        userFeedEventService.addUserEvent(review1.getUserId(), "REVIEW", "UPDATE", review.getReviewId());
-        return review1;
+        Review savedReview = reviewService.updateReview(review);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                savedReview.getUserId(),
+                "REVIEW",
+                "UPDATE",
+                review.getReviewId(),
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
+        return savedReview;
     }
 
     @DeleteMapping("/{id}")
@@ -42,7 +59,15 @@ public class ReviewController {
         log.info("DELETE /reviews/{} - Deleting review", id);
         int userId = reviewService.getReviewById(id).getUserId();
         reviewService.deleteReview(id);
-        userFeedEventService.addUserEvent(userId, "REVIEW", "REMOVE", id);
+        UserFeedEvent event = new UserFeedEvent(
+                0,
+                userId,
+                "REVIEW",
+                "REMOVE",
+                id,
+                Instant.now().toEpochMilli()
+        );
+        userFeedEventService.addEvent(event);
     }
 
     @GetMapping("/{id}")

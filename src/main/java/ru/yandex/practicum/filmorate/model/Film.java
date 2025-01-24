@@ -16,7 +16,6 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Entity
 @Table(name = "films")
 public class Film {
     @Id

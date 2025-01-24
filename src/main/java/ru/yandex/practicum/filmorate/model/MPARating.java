@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
 @Table(name = "MPA_Ratings") // Имя таблицы совпадает с именем в SQL
 public class MPARating {
 

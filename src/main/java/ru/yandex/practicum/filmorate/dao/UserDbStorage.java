@@ -34,9 +34,6 @@ public class UserDbStorage implements UserStorage {
 
         log.info("Starting user creation process for user: {}", user);
 
-        // Проверка имени: если пустое, подставляем логин
-        String name = (user.getName() == null || user.getName().isBlank()) ? user.getLogin() : user.getName();
-        user.setName(name); // Обновляем имя в объекте user
 
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
@@ -121,14 +118,15 @@ public class UserDbStorage implements UserStorage {
     @Override
     public void deleteUserById(Integer id) {
         try {
+
+            String deleteUserSql = "DELETE FROM users WHERE id = ?";
+            int rowsAffected = jdbc.update(deleteUserSql, id);
+
             String deleteLikesSql = "DELETE FROM film_likes WHERE user_id = ?";
             jdbc.update(deleteLikesSql, id);
 
             String deleteFriendshipsSql = "DELETE FROM friendships WHERE user_id = ? OR friend_id = ?";
             jdbc.update(deleteFriendshipsSql, id, id);
-
-            String deleteUserSql = "DELETE FROM users WHERE id = ?";
-            int rowsAffected = jdbc.update(deleteUserSql, id);
 
             if (rowsAffected == 0) {
                 throw new NotFoundException("Пользователь с id " + id + " не найден");

@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-@Entity
 @Table(name = "reviews")
 public class Review {
     @Id

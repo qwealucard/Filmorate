@@ -3,6 +3,7 @@
     import org.springframework.jdbc.core.JdbcTemplate;
     import org.springframework.jdbc.core.RowMapper;
     import org.springframework.stereotype.Component;
+    import org.springframework.stereotype.Repository;
     import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
     import ru.yandex.practicum.filmorate.exceptions.ValidationException;
     import ru.yandex.practicum.filmorate.model.Review;
@@ -12,6 +13,7 @@
     import java.util.List;
 
     @Component
+    @Repository
     public class ReviewStorage {
 
         private final JdbcTemplate jdbcTemplate;
@@ -21,7 +23,6 @@
         }
 
         public Review addReview(Review review) {
-            validateReview(review);
             checkUserAndFilmExist(review.getUserId(), review.getFilmId()); // Проверка существования
 
             String sql = "INSERT INTO reviews (content, is_positive, user_id, film_id, useful) VALUES (?, ?, ?, ?, 0)";
@@ -43,8 +44,7 @@
             if (review.getReviewId() == null) {
                 throw new ValidationException("Review ID cannot be null for update.");
             }
-            validateReview(review);
-            checkUserAndFilmExist(review.getUserId(), review.getFilmId()); // Проверка существования
+           checkUserAndFilmExist(review.getUserId(), review.getFilmId()); // Проверка существования
 
             String sql = "UPDATE reviews SET content = ?, is_positive = ? WHERE review_id = ?";
             int rowsUpdated = jdbcTemplate.update(sql, review.getContent(), review.getIsPositive(), review.getReviewId());
@@ -150,18 +150,6 @@
         public boolean isLiked(Integer reviewId, Integer userId) {
             String sql = "SELECT is_like FROM review_likes WHERE review_id = ? AND user_id = ?";
             return Boolean.TRUE.equals(jdbcTemplate.queryForObject(sql, Boolean.class, reviewId, userId));
-        }
-
-        private void validateReview(Review review) {
-            if (review.getContent() == null || review.getContent().isBlank()) {
-                throw new ValidationException("Review content cannot be null or blank.");
-            }
-            if (review.getUserId() == null) {
-                throw new ValidationException("Review must have a valid user ID.");
-            }
-            if (review.getFilmId() == null) {
-                throw new ValidationException("Review must have a valid film ID.");
-            }
         }
 
         // Проверка существования фильма и пользователя
